@@ -385,4 +385,218 @@ package Condensor
     annotation (Icon(coordinateSystem(preserveAspectRatio=false)), Diagram(
           coordinateSystem(preserveAspectRatio=false)));
   end SteamHydrogen_Volumess;
+
+  model Unnamedhybal
+      replaceable package mediumM=
+        NHES.Electrolysis.Media.Electrolysis.CathodeGas;
+      replaceable package mediumW=Modelica.Media.Water.StandardWater;
+      replaceable package mediumH=Modelica.Media.IdealGases.SingleGases.H2;
+      parameter Modelica.Units.SI.AbsolutePressure p=2e5;
+      parameter Modelica.Units.SI.MassFraction X[2]={0.8,
+                                                        0.2};
+      mediumgib.ThermodynamicState stateW;
+      mediumH.ThermodynamicState stateH;
+      Modelica.Units.SI.Temperature T;
+
+      Modelica.Units.SI.SpecificInternalEnergy uH;
+      Modelica.Units.SI.SpecificInternalEnergy uW;
+      parameter Modelica.Units.SI.Mass M=1;
+      parameter Modelica.Units.SI.Energy E=2000e3;
+
+        Modelica.Fluid.Interfaces.FluidPort_a port_a_mixture(
+      p(start=p_start),
+      redeclare package Medium = MediumH)
+      annotation (Placement(transformation(extent={{-110,-10},{-90,10}}),
+          iconTransformation(extent={{-110,-10},{-90,10}})));
+
+       Modelica.Fluid.Interfaces.FluidPort_a port_b_mixture(p(start=p_start) =
+        p_start, redeclare package Medium = MediumH) annotation (Placement(
+          transformation(extent={{90,-10},{110,10}}), iconTransformation(extent={{
+              90,-10},{110,10}})));
+
+      Modelica.Fluid.Interfaces.FluidPort_a port_b_water(p(start=p_start),
+        redeclare package Medium = MediumW) annotation (Placement(transformation(
+            extent={{-10,90},{10,110}}), iconTransformation(extent={{-10,90},{10,110}})));
+
+       Modelica.Thermal.HeatTransfer.Interfaces.HeatPort_a Heat_Port
+          annotation (Placement(transformation(extent={{-10,-110},{10,-90}})));
+  equation
+    stateW= mediumgib.setState_pT(p*X[1],T);
+    stateH= mediumH.setState_pT(p*X[2],T);
+    uH=mediumH.specificInternalEnergy(stateH);
+    uW=mediumgib.specificInternalEnergy(stateW);
+    E=M*(uH*X[2]*M+uW*X[1]*M);
+
+
+
+
+
+
+
+
+    port_a_mixture.p = p;
+    m_in=port_a_mixture.m_flow;
+    h_in =inStream(port_a_mixture.h_outflow);
+    X_in=inStream(port_a_mixture.Xi_outflow);
+    port_a_mixture.h_outflow =inStream(port_b_mixture.h_outflow);
+    port_a_mixture.Xi_outflow =inStream(port_b_mixture.Xi_outflow);
+
+    port_b_mixture.p = p;
+    m_v=port_b_mixture.m_flow;
+    port_b_mixture.h_outflow = h_v;
+    port_b_mixture.Xi_outflow = X_v;
+
+    port_b_water.p = p;
+    m_l=port_b_water.m_flow;
+    port_b_water.h_outflow = h_l;
+
+        Heat_Port.T=T;
+        Qhx =Heat_Port.Q_flow;
+    annotation ();
+  end Unnamedhybal;
+
+  model Unnamedhybalvol
+      replaceable package mediumM=
+        NHES.Electrolysis.Media.Electrolysis.CathodeGas;
+      replaceable package mediumW=Modelica.Media.Water.StandardWater;
+      replaceable package mediumH=Modelica.Media.IdealGases.SingleGases.H2;
+      parameter Modelica.Units.SI.AbsolutePressure p=2e5;
+      parameter Modelica.Units.SI.MassFraction X[2]={0.8, 0.2};
+      parameter Modelica.Units.SI.Mass M=1;
+      Modelica.Units.SI.Power Qhx;
+      mediumgib.ThermodynamicState stateW;
+      mediumH.ThermodynamicState stateH;
+      Modelica.Units.SI.Temperature T;
+      Modelica.Units.SI.SpecificEnthalpy h_in(min=0);
+      Modelica.Units.SI.SpecificEnthalpy h_v(min=0);
+      Modelica.Units.SI.SpecificEnthalpy h_l(min=0);
+      Modelica.Units.SI.MassFlowRate m_in;
+      Modelica.Units.SI.MassFlowRate m_v;
+      Modelica.Units.SI.MassFlowRate m_l;
+      Modelica.Units.SI.MassFlowRate m_T;
+      Modelica.Units.SI.SpecificInternalEnergy uH;
+      Modelica.Units.SI.SpecificInternalEnergy uW;
+      Modelica.Units.SI.MassFraction X_in[2];
+      Modelica.Units.SI.MassFraction X_v[2];
+      Modelica.Units.SI.MassFraction C_in;
+      Modelica.Units.SI.MassFraction C_v;
+
+        Modelica.Fluid.Interfaces.FluidPort_a port_a_mixture(
+      p(start=p_start),
+      redeclare package Medium = MediumH)
+      annotation (Placement(transformation(extent={{-110,-10},{-90,10}}),
+          iconTransformation(extent={{-110,-10},{-90,10}})));
+
+       Modelica.Fluid.Interfaces.FluidPort_a port_b_mixture(p(start=p_start) =
+        p_start, redeclare package Medium = MediumH) annotation (Placement(
+          transformation(extent={{90,-10},{110,10}}), iconTransformation(extent={{
+              90,-10},{110,10}})));
+
+      Modelica.Fluid.Interfaces.FluidPort_a port_b_water(p(start=p_start),
+        redeclare package Medium = MediumW) annotation (Placement(transformation(
+            extent={{-10,90},{10,110}}), iconTransformation(extent={{-10,90},{10,110}})));
+
+       Modelica.Thermal.HeatTransfer.Interfaces.HeatPort_a Heat_Port
+          annotation (Placement(transformation(extent={{-10,-110},{10,-90}})));
+  equation
+    stateW= mediumgib.setState_pT(p*X[1],T);
+    stateH= mediumH.setState_pT(p*X[2],T);
+    uH=mediumH.specificInternalEnergy(stateH);
+    uW=mediumgib.specificInternalEnergy(stateW);
+    der(E)=Qhx+m_in*h_in+m_v*h_v+m_l*h_l;
+    der(M_H)=C_in*m_in+C_v*h_v;
+    der(M_W)=(1-C_in)*m_in+m_l+(1-C_v)*m_v;
+
+    E=M_H*uH+M_W*uW;
+
+
+
+    //Hydrogen Trace
+    X_in[1]=C_in;
+    X_v[1]=C_v;
+    X_v[2]=1-C_v;
+
+
+    port_a_mixture.p = p;
+    m_in=port_a_mixture.m_flow;
+    h_in =inStream(port_a_mixture.h_outflow);
+    X_in=inStream(port_a_mixture.Xi_outflow);
+    port_a_mixture.h_outflow =inStream(port_b_mixture.h_outflow);
+    port_a_mixture.Xi_outflow =inStream(port_b_mixture.Xi_outflow);
+
+    port_b_mixture.p = p;
+    m_v=port_b_mixture.m_flow;
+    port_b_mixture.h_outflow = h_v;
+    port_b_mixture.Xi_outflow = X_v;
+
+    port_b_water.p = p;
+    m_l=port_b_water.m_flow;
+    port_b_water.h_outflow = h_l;
+
+    Heat_Port.T=T;
+    Qhx =Heat_Port.Q_flow;
+    annotation ();
+  end Unnamedhybalvol;
+
+  model Unnamedhyballkafs
+      replaceable package mediumM=
+        NHES.Electrolysis.Media.Electrolysis.CathodeGas;
+      replaceable package mediumW=Modelica.Media.Water.StandardWater;
+      replaceable package mediumH=Modelica.Media.IdealGases.SingleGases.H2;
+      parameter Modelica.Units.SI.AbsolutePressure p=2e5;
+      parameter Modelica.Units.SI.MassFraction X[2]={0.8,
+                                                        0.2};
+      mediumgib.ThermodynamicState stateW;
+      mediumH.ThermodynamicState stateH;
+      Modelica.Units.SI.Temperature T;
+
+      Modelica.Units.SI.SpecificInternalEnergy uH;
+      Modelica.Units.SI.SpecificInternalEnergy uW;
+      parameter Modelica.Units.SI.Mass M=1;
+      parameter Modelica.Units.SI.Power Qhx=2000e3;
+
+        Modelica.Fluid.Interfaces.FluidPort_a port_a_mixture(
+      p(start=p_start),
+      redeclare package Medium = MediumH)
+      annotation (Placement(transformation(extent={{-110,-10},{-90,10}}),
+          iconTransformation(extent={{-110,-10},{-90,10}})));
+
+       Modelica.Fluid.Interfaces.FluidPort_a port_b_mixture(p(start=p_start) =
+        p_start, redeclare package Medium = MediumH) annotation (Placement(
+          transformation(extent={{90,-10},{110,10}}), iconTransformation(extent={{
+              90,-10},{110,10}})));
+
+      Modelica.Fluid.Interfaces.FluidPort_a port_b_water(p(start=p_start),
+        redeclare package Medium = MediumW) annotation (Placement(transformation(
+            extent={{-10,90},{10,110}}), iconTransformation(extent={{-10,90},{10,110}})));
+
+       Modelica.Thermal.HeatTransfer.Interfaces.HeatPort_a Heat_Port
+          annotation (Placement(transformation(extent={{-10,-110},{10,-90}})));
+  equation
+    stateW= mediumgib.setState_pT(p*X[1],T);
+    stateH= mediumH.setState_pT(p*X[2],T);
+    uH=mediumH.specificInternalEnergy(stateH);
+    uW=mediumgib.specificInternalEnergy(stateW);
+    Qhx=M*(uH*X[2]*M+uW*X[1]*M);
+
+    port_a_mixture.p = p;
+    m_in=port_a_mixture.m_flow;
+    h_in =inStream(port_a_mixture.h_outflow);
+    X_in=inStream(port_a_mixture.Xi_outflow);
+    port_a_mixture.h_outflow =inStream(port_b_mixture.h_outflow);
+    port_a_mixture.Xi_outflow =inStream(port_b_mixture.Xi_outflow);
+
+    port_b_mixture.p = p;
+    m_v=port_b_mixture.m_flow;
+    port_b_mixture.h_outflow = h_v;
+    port_b_mixture.Xi_outflow = X_v;
+
+    port_b_water.p = p;
+    m_l=port_b_water.m_flow;
+    port_b_water.h_outflow = h_l;
+
+        Heat_Port.T=T;
+        Qhx =Heat_Port.Q_flow;
+    annotation ();
+  end Unnamedhyballkafs;
 end Condensor;
