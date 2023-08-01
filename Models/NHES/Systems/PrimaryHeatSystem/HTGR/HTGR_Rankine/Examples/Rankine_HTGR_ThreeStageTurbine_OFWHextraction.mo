@@ -3,7 +3,7 @@ model Rankine_HTGR_ThreeStageTurbine_OFWHextraction
   extends Modelica.Icons.Example;
   parameter Real P_ext=138;
   parameter Real P_demand=1;
-  parameter Modelica.Units.SI.Density d_ext= 42.55456924 "kg/m3";
+  parameter Modelica.Units.SI.Density d_ext= 42.55456924 "kg/m3          ";
   parameter Modelica.Units.SI.MassFlowRate m_ext=40;
   Real breaker;
   parameter Real Boo=1;
