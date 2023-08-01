@@ -8,7 +8,7 @@ model Rankine_HTGR_ThreeStageTurbine_OFWHextraction
   Real breaker;
   parameter Real Boo=1;
 
-  Real eta_th "Thermal Cycle Efficiency";
+  Real eta_th "Thermal Cycle Efficiency   This is a correct change!!";
 
   NHES.Systems.PrimaryHeatSystem.HTGR.HTGR_Rankine.Components.HTGR_PebbleBed_Primary_Loop_STHX
     hTGR_PebbleBed_Primary_Loop(redeclare
