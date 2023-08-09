@@ -2869,9 +2869,7 @@ package HeatTransport
         h_source=h_source)
         annotation (Placement(transformation(extent={{-20,-20},{20,20}})));
       Modelica.Blocks.Sources.RealExpression realExpression(y=m_flow)
-        annotation (Placement(transformation(extent={{-140,2},{-120,22}})));
-      Modelica.Blocks.Sources.RealExpression realExpression1(y=h_source)
-        annotation (Placement(transformation(extent={{-140,-12},{-120,8}})));
+        annotation (Placement(transformation(extent={{-140,-2},{-120,18}})));
       Modelica.Blocks.Sources.RealExpression realExpression2(y=P_sink)
         annotation (Placement(transformation(extent={{56,28},{76,48}})));
 
@@ -2880,6 +2878,7 @@ package HeatTransport
         parameter Modelica.Units.SI.MassFlowRate m_flow=1;
         parameter Modelica.Units.SI.AbsolutePressure P_sink=1e5;
         parameter Modelica.Units.SI.SpecificEnthalpy h_source=2700e3;
+        parameter Modelica.Units.SI.SpecificEnthalpy h_sink=3000e3;
 
       parameter Integer nK=3 "nodes";
       parameter Integer nV=3 "nodes";
@@ -2887,20 +2886,67 @@ package HeatTransport
       parameter SI.Length L=100 "Supply Pipe Length";
       parameter SI.Diameter D=0.25 "Inner Diameter Of Supply Pipe";
       Modelica.Units.SI.AbsolutePressure P_source;
+      TRANSFORM.Fluid.Sensors.Pressure sensor_p(redeclare package Medium =
+            Modelica.Media.Water.StandardWater)
+        annotation (Placement(transformation(extent={{-54,0},{-34,20}})));
+      TRANSFORM.Fluid.Sensors.Pressure sensor_p1(redeclare package Medium =
+            Modelica.Media.Water.StandardWater)
+        annotation (Placement(transformation(extent={{22,0},{42,20}})));
+      TRANSFORM.Fluid.Sensors.Temperature sensor_T(redeclare package Medium =
+            Modelica.Media.Water.StandardWater)
+        annotation (Placement(transformation(extent={{-40,0},{-20,20}})));
+      TRANSFORM.Fluid.Sensors.Temperature sensor_T1(redeclare package Medium =
+            Modelica.Media.Water.StandardWater)
+        annotation (Placement(transformation(extent={{40,0},{60,20}})));
+      TRANSFORM.Fluid.Sensors.SpecificEnthalpy sensor_h(redeclare package
+          Medium =
+            Modelica.Media.Water.StandardWater)
+        annotation (Placement(transformation(extent={{54,0},{74,20}})));
+      TRANSFORM.Fluid.Sensors.MassFlowRate sensor_m_flow(redeclare package
+          Medium =
+            Modelica.Media.Water.StandardWater)
+        annotation (Placement(transformation(extent={{-72,-10},{-52,10}})));
+      Controls.LimOffsetPID PID(
+        k=1e-3,
+        yMax=3e6,
+        yMin=-h_source,
+        offset=h_source,
+        init_output=h_source)
+        annotation (Placement(transformation(extent={{10,50},{-10,70}})));
+      Modelica.Blocks.Sources.RealExpression realExpression1(y=h_sink)
+        annotation (Placement(transformation(extent={{100,50},{80,70}})));
     equation
       P_source=boundary2.medium.p;
-      connect(boundary2.ports[1], steamTransportnode1.port_a)
-        annotation (Line(points={{-80,0},{-20,0}}, color={0,127,255}));
+
       connect(steamTransportnode1.port_b, boundary1.ports[1])
         annotation (Line(points={{20,0},{82,0}}, color={0,127,255}));
-      connect(realExpression.y, boundary2.m_flow_in) annotation (Line(points={{-119,12},
-              {-106,12},{-106,8},{-100,8}},                color={0,0,127}));
-      connect(realExpression1.y, boundary2.h_in) annotation (Line(points={{-119,-2},
-              {-110,-2},{-110,4},{-102,4}}, color={0,0,127}));
+      connect(realExpression.y, boundary2.m_flow_in) annotation (Line(points={{-119,8},
+              {-100,8}},                                   color={0,0,127}));
       connect(realExpression2.y, boundary1.p_in)
         annotation (Line(points={{77,38},{104,38},{104,8}}, color={0,0,127}));
+      connect(steamTransportnode1.port_b, sensor_p1.port)
+        annotation (Line(points={{20,0},{32,0}}, color={0,127,255}));
+      connect(steamTransportnode1.port_b, sensor_T1.port)
+        annotation (Line(points={{20,0},{50,0}}, color={0,127,255}));
+      connect(steamTransportnode1.port_b, sensor_h.port)
+        annotation (Line(points={{20,0},{64,0}}, color={0,127,255}));
+      connect(sensor_p.port, sensor_m_flow.port_b)
+        annotation (Line(points={{-44,0},{-52,0}}, color={0,127,255}));
+      connect(boundary2.ports[1], sensor_m_flow.port_a)
+        annotation (Line(points={{-80,0},{-72,0}}, color={0,127,255}));
+      connect(sensor_p.port, sensor_T.port)
+        annotation (Line(points={{-44,0},{-30,0}}, color={0,127,255}));
+      connect(sensor_T.port, steamTransportnode1.port_a)
+        annotation (Line(points={{-30,0},{-20,0}}, color={0,127,255}));
+      connect(PID.y, boundary2.h_in) annotation (Line(points={{-11,60},{-110,60},
+              {-110,4},{-102,4}},               color={0,0,127}));
+      connect(sensor_h.h_out, PID.u_m) annotation (Line(points={{70,10},{78,10},
+              {78,24},{14,24},{14,38},{0,38},{0,48}},
+                                                    color={0,0,127}));
+      connect(realExpression1.y, PID.u_s) annotation (Line(points={{79,60},{12,
+              60}},           color={0,0,127}));
       annotation (experiment(
-          StopTime=10000,
+          StopTime=20000,
           Interval=100,
           __Dymola_Algorithm="Esdirk45a"));
     end HTtest10node;
