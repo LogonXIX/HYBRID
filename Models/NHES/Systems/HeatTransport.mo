@@ -1,7 +1,7 @@
 within NHES.Systems;
 package HeatTransport
   model HeatTransport
-    extends BaseClasses.Partial_SubSystem_A(
+    extends BaseClasses.Partial_SubSystem_C(
       redeclare replaceable ControlSystems.CS_Dummy CS,
       redeclare replaceable ControlSystems.ED_Dummy ED,
       redeclare replaceable data.pipe_data_1 Supply_pipe_data,
@@ -705,7 +705,7 @@ package HeatTransport
   end HeatTransport;
 
   model HeatTransport_withCS
-    extends BaseClasses.Partial_SubSystem_A(
+    extends BaseClasses.Partial_SubSystem_C(
       redeclare replaceable ControlSystems.CS_Dummy CS,
       redeclare replaceable ControlSystems.ED_Dummy ED,
       redeclare replaceable data.pipe_data_1 Supply_pipe_data,
@@ -2356,6 +2356,20 @@ package HeatTransport
         annotation (Placement(transformation(extent={{60,122},{76,138}})));
       replaceable BaseClasses.Record_Data Return_pipe_data
         annotation (Placement(transformation(extent={{82,122},{98,138}})));
+      TRANSFORM.Fluid.Interfaces.FluidPort_Flow port_a_supply(redeclare package
+          Medium = Medium)
+        annotation (Placement(transformation(extent={{-110,70},{-90,90}})));
+      TRANSFORM.Fluid.Interfaces.FluidPort_State port_b_supply(redeclare
+          package Medium = Medium)
+        annotation (Placement(transformation(extent={{90,70},{110,90}})));
+      TRANSFORM.Fluid.Interfaces.FluidPort_Flow port_a_return(redeclare package
+          Medium = Medium)
+        annotation (Placement(transformation(extent={{90,-70},{110,-50}})));
+      TRANSFORM.Fluid.Interfaces.FluidPort_State port_b_return(redeclare
+          package Medium = Medium)
+        annotation (Placement(transformation(extent={{-110,-70},{-90,-50}})));
+      replaceable package Medium = Modelica.Media.Interfaces.PartialMedium
+        annotation (choicesAllMatching=true);
     end Partial_SubSystem_A;
 
     model Partial_SubSystem_B
@@ -2363,6 +2377,16 @@ package HeatTransport
       replaceable BaseClasses.Record_Data Supply_pipe_data
         annotation (Placement(transformation(extent={{60,122},{76,138}})));
     end Partial_SubSystem_B;
+
+    model Partial_SubSystem_C
+      extends Partial_SubSystem;
+      replaceable BaseClasses.Record_Data Supply_pipe_data
+        annotation (Placement(transformation(extent={{60,122},{76,138}})));
+      replaceable BaseClasses.Record_Data Return_pipe_data
+        annotation (Placement(transformation(extent={{82,122},{98,138}})));
+      replaceable package Medium = Modelica.Media.Interfaces.PartialMedium
+        annotation (choicesAllMatching=true);
+    end Partial_SubSystem_C;
   end BaseClasses;
 
   package Examples
@@ -2875,15 +2899,15 @@ package HeatTransport
 
 
 
-        parameter Modelica.Units.SI.MassFlowRate m_flow=1;
-        parameter Modelica.Units.SI.AbsolutePressure P_sink=1e5;
+        parameter Modelica.Units.SI.MassFlowRate m_flow=5;
+        parameter Modelica.Units.SI.AbsolutePressure P_sink=2e5;
         parameter Modelica.Units.SI.SpecificEnthalpy h_source=2700e3;
         parameter Modelica.Units.SI.SpecificEnthalpy h_sink=3000e3;
 
       parameter Integer nK=3 "nodes";
       parameter Integer nV=3 "nodes";
       parameter Real K=1 "Local Loss Coe";
-      parameter SI.Length L=100 "Supply Pipe Length";
+      parameter SI.Length L=1000 "Supply Pipe Length";
       parameter SI.Diameter D=0.25 "Inner Diameter Of Supply Pipe";
       Modelica.Units.SI.AbsolutePressure P_source;
       TRANSFORM.Fluid.Sensors.Pressure sensor_p(redeclare package Medium =
@@ -2950,6 +2974,318 @@ package HeatTransport
           Interval=100,
           __Dymola_Algorithm="Esdirk45a"));
     end HTtest10node;
+
+    model HT_steam
+      import HeatTransport;
+      extends Modelica.Icons.Example;
+      parameter Integer nHT=5;
+      TRANSFORM.Fluid.BoundaryConditions.Boundary_pT boundary1(
+        redeclare package Medium = Medium,
+        use_p_in=true,
+        p=2500000,
+        T=673.15,
+        nPorts=1)
+        annotation (Placement(transformation(extent={{102,-10},{82,10}})));
+      TRANSFORM.Fluid.BoundaryConditions.MassFlowSource_h boundary2(
+        redeclare package Medium = Medium,
+        use_m_flow_in=true,
+        use_h_in=true,
+        m_flow=4,
+        h=3000e3,
+        nPorts=1)
+        annotation (Placement(transformation(extent={{-100,-10},{-80,10}})));
+
+        parameter Modelica.Units.SI.MassFlowRate m_flow=44;
+        parameter Modelica.Units.SI.AbsolutePressure P_sink=1e5;
+        parameter Modelica.Units.SI.Temperature T_sh=20;
+        Modelica.Units.SI.Temperature T_sink;
+         Modelica.Units.SI.SpecificEnthalpy h_source;
+        final parameter Modelica.Units.SI.SpecificEnthalpy h_sink(fixed=false)=3e6;
+
+      parameter Real K=2.8 "Local Loss Coe";
+      parameter SI.Length L=500 "Supply Pipe Length";
+      parameter SI.Velocity v=6;
+      final parameter SI.Diameter D(fixed=false)=0.51
+        "Inner Diameter Of Supply Pipe";
+      Modelica.Units.SI.AbsolutePressure P_source;
+      final parameter Integer nU(fixed=false)=1;
+      final parameter Integer nSp(fixed=false)=1;
+      final parameter Real [40] Ks(fixed=false)=fill(0,40);
+      final parameter Integer i(fixed=false)=1;
+      final parameter Integer j(fixed=false)=1;
+      final parameter Integer g(fixed=false)=1;
+      final parameter SI.ThermalResistance R_val(fixed=false)=0.2 "Thermal resistance";
+      parameter SI.Thickness th_i=0.1;
+      parameter SI.ThermalConductivity lambda=0.08;
+
+      TRANSFORM.Fluid.Sensors.Pressure sensor_p1(redeclare package Medium = Medium)
+        annotation (Placement(transformation(extent={{22,0},{42,20}})));
+      TRANSFORM.Fluid.Sensors.Temperature sensor_T1(redeclare package Medium =
+            Medium)
+        annotation (Placement(transformation(extent={{40,0},{60,20}})));
+      TRANSFORM.Fluid.Sensors.SpecificEnthalpy sensor_h(redeclare package
+          Medium =
+            Medium)
+        annotation (Placement(transformation(extent={{56,0},{76,20}})));
+      Controls.LimOffsetPID PID(
+        k=1e-1,
+        yMax=3.5e6,
+        yMin=h_sink,
+        offset=h_sink,
+        init_output=h_sink)
+        annotation (Placement(transformation(extent={{10,50},{-10,70}})));
+      Modelica.Blocks.Sources.RealExpression realExpression1(y=T_sink)
+        annotation (Placement(transformation(extent={{100,50},{80,70}})));
+      HeatTransport.HeatTransport_Onewaynew heatTransport_Onewaynew(
+        redeclare replaceable HeatTransport.data.pipe_data_1 Supply_pipe_data(
+          L=L,
+          D=D,
+          nV=40),
+        redeclare package S_Medium = Medium,
+        S_use_HeatTransfer=true,
+        S_alpha=20,
+        S_amb_T=293.15,
+        redeclare model S_HeatTransfer =
+            TRANSFORM.Fluid.ClosureRelations.HeatTransfer.Models.DistributedPipe_1D_MultiTransferSurface.Nus_SinglePhase_2Region,
+
+        S_p_a_start=2501000,
+        S_p_b_start=2500000,
+        S_use_T_start=true,
+        S_T_a_start=473.15,
+        S_T_b_start=473.15,
+        S_m_flow_a_start=10,
+        Ks=Ks,
+        R_val=R_val)
+        annotation (Placement(transformation(extent={{-24,-20},{16,20}})));
+
+      replaceable package Medium = Modelica.Media.Water.StandardWater
+        annotation (choicesAllMatching=true);
+      TRANSFORM.Fluid.Sensors.SpecificEnthalpy sensor_h1(redeclare package
+          Medium =
+            Medium)
+        annotation (Placement(transformation(extent={{-70,0},{-50,20}})));
+      Modelica.Blocks.Sources.RealExpression realExpression3(y=m_flow)
+        annotation (Placement(transformation(extent={{-156,0},{-136,20}})));
+
+      Fluid.Ultilities.NonLinear_Break
+                                  nonLinear_Break(redeclare package Medium = Medium)
+        annotation (Placement(transformation(extent={{-50,-10},{-30,10}})));
+      Modelica.Blocks.Sources.RealExpression realExpression2(y=P_sink)
+        annotation (Placement(transformation(extent={{56,-52},{76,-32}})));
+    initial algorithm
+      nU:= integer( ceil(L/125));
+      nSp:=integer(floor(40/nU));
+      i:=1;
+      j:=1;
+      g:=0;
+      while i <41 loop
+        if j==nSp and g<nU then
+          Ks[i]:=K;
+          j:=1;
+          g:=g+1;
+        else
+          Ks[i]:=0;
+          j:=j+1;
+        end if;
+        i:=i+1;
+      end while;
+
+    initial equation
+      m_flow=v*Modelica.Constants.pi*(D^2)*0.25
+                                              *Medium.density(Medium.setState_pT(P_sink,T_sink));
+
+    R_val=(D+2*th_i)*ln((D+2*th_i)/D)/lambda;
+    h_sink=Medium.specificEnthalpy(Medium.setState_pT(P_sink,T_sink));
+    equation
+      T_sink=Medium.saturationTemperature_sat(Medium.setSat_p(P_sink))+T_sh;
+      P_source=boundary2.medium.p+1e-5;
+      h_source=sensor_h1.h_out+1e-5;
+
+      connect(PID.y, boundary2.h_in) annotation (Line(points={{-11,60},{-110,60},{-110,
+              4},{-102,4}},                     color={0,0,127}));
+      connect(realExpression1.y, PID.u_s) annotation (Line(points={{79,60},{12,60}},
+                              color={0,0,127}));
+      connect(heatTransport_Onewaynew.port_b_S, sensor_p1.port)
+        annotation (Line(points={{16,0},{32,0}}, color={0,127,255}));
+      connect(sensor_p1.port, sensor_T1.port)
+        annotation (Line(points={{32,0},{50,0}}, color={0,127,255}));
+      connect(sensor_T1.port, sensor_h.port)
+        annotation (Line(points={{50,0},{66,0}}, color={0,127,255}));
+      connect(sensor_h.port, boundary1.ports[1])
+        annotation (Line(points={{66,0},{82,0}}, color={0,127,255}));
+      connect(boundary2.ports[1], sensor_h1.port) annotation (Line(points={{-80,0},{
+              -70,0},{-70,0},{-60,0}},     color={0,127,255}));
+      connect(realExpression3.y, boundary2.m_flow_in) annotation (Line(points={{-135,
+              10},{-108,10},{-108,16},{-100,16},{-100,8}}, color={0,0,127}));
+      connect(sensor_T1.T, PID.u_m) annotation (Line(points={{56,10},{56,-4},{78,-4},
+              {78,14},{80,14},{80,24},{12,24},{12,38},{0,38},{0,48}}, color={0,0,127}));
+      connect(sensor_h1.port, nonLinear_Break.port_a)
+        annotation (Line(points={{-60,0},{-50,0}}, color={0,127,255}));
+      connect(heatTransport_Onewaynew.port_a_S, nonLinear_Break.port_b)
+        annotation (Line(points={{-24,0},{-30,0}}, color={0,127,255}));
+      connect(realExpression2.y, boundary1.p_in) annotation (Line(points={{77,-42},{
+              112,-42},{112,8},{104,8}}, color={0,0,127}));
+      annotation (experiment(
+          StopTime=10000,
+          Interval=1000,
+          __Dymola_Algorithm="Esdirk45a"));
+    end HT_steam;
+
+    model HT_steam_ports
+      import HeatTransport;
+      extends Modelica.Icons.Example;
+      parameter Integer nHT=5;
+      TRANSFORM.Fluid.BoundaryConditions.Boundary_pT boundary1(
+        redeclare package Medium = Medium,
+        use_p_in=true,
+        p=2500000,
+        T=673.15,
+        nPorts=1)
+        annotation (Placement(transformation(extent={{102,-10},{82,10}})));
+      TRANSFORM.Fluid.BoundaryConditions.MassFlowSource_h boundary2(
+        redeclare package Medium = Medium,
+        use_m_flow_in=true,
+        use_h_in=true,
+        m_flow=4,
+        h=3000e3,
+        nPorts=1)
+        annotation (Placement(transformation(extent={{-100,-10},{-80,10}})));
+
+        parameter Modelica.Units.SI.MassFlowRate m_flow=44;
+        parameter Modelica.Units.SI.AbsolutePressure P_sink=1e5;
+        parameter Modelica.Units.SI.Temperature T_sh=20;
+        Modelica.Units.SI.Temperature T_sink;
+         Modelica.Units.SI.SpecificEnthalpy h_source;
+        final parameter Modelica.Units.SI.SpecificEnthalpy h_sink(fixed=false)=3e6;
+
+      parameter Real K=2.8 "Local Loss Coe";
+      parameter SI.Length L=500 "Supply Pipe Length";
+      parameter SI.Velocity v=6;
+      final parameter SI.Diameter D(fixed=false)=0.51
+        "Inner Diameter Of Supply Pipe";
+      Modelica.Units.SI.AbsolutePressure P_source;
+      final parameter Integer nU(fixed=false)=1;
+      final parameter Integer nSp(fixed=false)=1;
+      final parameter Real [40] Ks(fixed=false)=fill(0,40);
+      final parameter Integer i(fixed=false)=1;
+      final parameter Integer j(fixed=false)=1;
+      final parameter Integer g(fixed=false)=1;
+      final parameter SI.ThermalResistance R_val(fixed=false)=0.2 "Thermal resistance";
+      parameter SI.Thickness th_i=0.1;
+      parameter SI.ThermalConductivity lambda=0.08;
+
+      TRANSFORM.Fluid.Sensors.Pressure sensor_p1(redeclare package Medium = Medium)
+        annotation (Placement(transformation(extent={{22,0},{42,20}})));
+      TRANSFORM.Fluid.Sensors.Temperature sensor_T1(redeclare package Medium =
+            Medium)
+        annotation (Placement(transformation(extent={{40,0},{60,20}})));
+      TRANSFORM.Fluid.Sensors.SpecificEnthalpy sensor_h(redeclare package
+          Medium =
+            Medium)
+        annotation (Placement(transformation(extent={{56,0},{76,20}})));
+      Controls.LimOffsetPID PID(
+        k=1e-1,
+        yMax=3.5e6,
+        yMin=h_sink,
+        offset=h_sink,
+        init_output=h_sink)
+        annotation (Placement(transformation(extent={{10,50},{-10,70}})));
+      Modelica.Blocks.Sources.RealExpression realExpression1(y=T_sink)
+        annotation (Placement(transformation(extent={{100,50},{80,70}})));
+      HeatTransport.HeatTransport_Onewaynew heatTransport_Onewaynew(
+        redeclare replaceable HeatTransport.data.pipe_data_1 Supply_pipe_data(
+          L=L,
+          D=D,
+          nV=40),
+        redeclare package S_Medium = Medium,
+        S_use_HeatTransfer=true,
+        S_alpha=20,
+        S_amb_T=293.15,
+        redeclare model S_HeatTransfer =
+            TRANSFORM.Fluid.ClosureRelations.HeatTransfer.Models.DistributedPipe_1D_MultiTransferSurface.Nus_SinglePhase_2Region,
+
+        S_p_a_start=2501000,
+        S_p_b_start=2500000,
+        S_use_T_start=true,
+        S_T_a_start=473.15,
+        S_T_b_start=473.15,
+        S_m_flow_a_start=10,
+        Ks=Ks,
+        R_val=R_val)
+        annotation (Placement(transformation(extent={{-24,-20},{16,20}})));
+
+      replaceable package Medium = Modelica.Media.Water.StandardWater
+        annotation (choicesAllMatching=true);
+      TRANSFORM.Fluid.Sensors.SpecificEnthalpy sensor_h1(redeclare package
+          Medium =
+            Medium)
+        annotation (Placement(transformation(extent={{-70,0},{-50,20}})));
+      Modelica.Blocks.Sources.RealExpression realExpression3(y=m_flow)
+        annotation (Placement(transformation(extent={{-156,0},{-136,20}})));
+
+      Fluid.Ultilities.NonLinear_Break
+                                  nonLinear_Break(redeclare package Medium = Medium)
+        annotation (Placement(transformation(extent={{-50,-10},{-30,10}})));
+      Modelica.Blocks.Sources.RealExpression realExpression2(y=P_sink)
+        annotation (Placement(transformation(extent={{56,-52},{76,-32}})));
+    initial algorithm
+      nU:= integer( ceil(L/125));
+      nSp:=integer(floor(40/nU));
+      i:=1;
+      j:=1;
+      g:=0;
+      while i <41 loop
+        if j==nSp and g<nU then
+          Ks[i]:=K;
+          j:=1;
+          g:=g+1;
+        else
+          Ks[i]:=0;
+          j:=j+1;
+        end if;
+        i:=i+1;
+      end while;
+
+    initial equation
+      m_flow=v*Modelica.Constants.pi*(D^2)*0.25
+                                              *Medium.density(Medium.setState_pT(P_sink,T_sink));
+
+    R_val=(D+2*th_i)*ln((D+2*th_i)/D)/lambda;
+    h_sink=Medium.specificEnthalpy(Medium.setState_pT(P_sink,T_sink));
+    equation
+      T_sink=Medium.saturationTemperature_sat(Medium.setSat_p(P_sink))+T_sh;
+      P_source=boundary2.medium.p+1e-5;
+      h_source=sensor_h1.h_out+1e-5;
+
+      connect(PID.y, boundary2.h_in) annotation (Line(points={{-11,60},{-110,60},{-110,
+              4},{-102,4}},                     color={0,0,127}));
+      connect(realExpression1.y, PID.u_s) annotation (Line(points={{79,60},{12,60}},
+                              color={0,0,127}));
+      connect(heatTransport_Onewaynew.port_b_S, sensor_p1.port)
+        annotation (Line(points={{16,0},{32,0}}, color={0,127,255}));
+      connect(sensor_p1.port, sensor_T1.port)
+        annotation (Line(points={{32,0},{50,0}}, color={0,127,255}));
+      connect(sensor_T1.port, sensor_h.port)
+        annotation (Line(points={{50,0},{66,0}}, color={0,127,255}));
+      connect(sensor_h.port, boundary1.ports[1])
+        annotation (Line(points={{66,0},{82,0}}, color={0,127,255}));
+      connect(boundary2.ports[1], sensor_h1.port) annotation (Line(points={{-80,0},{
+              -70,0},{-70,0},{-60,0}},     color={0,127,255}));
+      connect(realExpression3.y, boundary2.m_flow_in) annotation (Line(points={{-135,
+              10},{-108,10},{-108,16},{-100,16},{-100,8}}, color={0,0,127}));
+      connect(sensor_T1.T, PID.u_m) annotation (Line(points={{56,10},{56,-4},{78,-4},
+              {78,14},{80,14},{80,24},{12,24},{12,38},{0,38},{0,48}}, color={0,0,127}));
+      connect(sensor_h1.port, nonLinear_Break.port_a)
+        annotation (Line(points={{-60,0},{-50,0}}, color={0,127,255}));
+      connect(heatTransport_Onewaynew.port_a_S, nonLinear_Break.port_b)
+        annotation (Line(points={{-24,0},{-30,0}}, color={0,127,255}));
+      connect(realExpression2.y, boundary1.p_in) annotation (Line(points={{77,-42},{
+              112,-42},{112,8},{104,8}}, color={0,0,127}));
+      annotation (experiment(
+          StopTime=10000,
+          Interval=1000,
+          __Dymola_Algorithm="Esdirk45a"));
+    end HT_steam_ports;
   end Examples;
 
   package ControlSystems
@@ -3045,10 +3381,10 @@ package HeatTransport
 
     parameter Real  K= 1 "Local Loss Coe";
     parameter Integer nV=3 "nodes";
-    parameter Modelica.Units.SI.MassFlowRate mFlow=1 "system mass flow rate";
-    parameter Modelica.Units.SI.AbsolutePressure p_sink=1e5
+    parameter Modelica.Units.SI.MassFlowRate m_flow_init=1 "system mass flow rate";
+    parameter Modelica.Units.SI.AbsolutePressure p_init=1e5
       "sink pressure";
-    parameter Modelica.Units.SI.SpecificEnthalpy h_source=1000e3
+    parameter Modelica.Units.SI.SpecificEnthalpy h_init=1000e3
       "inlet specific enthalpy";
 
     TRANSFORM.Fluid.Pipes.GenericPipe_MultiTransferSurface pipe(
@@ -3107,6 +3443,1634 @@ package HeatTransport
     annotation (Icon(coordinateSystem(preserveAspectRatio=false)), Diagram(
           coordinateSystem(preserveAspectRatio=false)));
   end steamTransportnode;
+
+  model HeatTransport_Onewaynew
+    import HeatTransport;
+    TRANSFORM.Fluid.Interfaces.FluidPort_Flow port_a_S(redeclare package Medium
+        = S_Medium)
+      annotation (Placement(transformation(extent={{-110,-10},{-90,10}}),
+          iconTransformation(extent={{-110,-10},{-90,10}})));
+    TRANSFORM.Fluid.Interfaces.FluidPort_State port_b_S(redeclare package
+        Medium =
+          S_Medium)
+      annotation (Placement(transformation(extent={{90,-10},{110,10}}),
+          iconTransformation(extent={{90,-10},{110,10}})));
+    TRANSFORM.Fluid.Pipes.GenericPipe_MultiTransferSurface Supply(redeclare
+        package Medium = S_Medium,
+      use_Ts_start=S_use_T_start,
+      p_a_start=S_p_a_start,
+      p_b_start=S_p_b_start,
+      T_a_start=S_T_a_start,
+      T_b_start=S_T_b_start,
+      h_a_start=S_h_a_start,
+      h_b_start=S_h_b_start,
+      m_flow_a_start=S_m_flow_a_start,
+      m_flow_b_start=S_m_flow_b_start,
+      redeclare model Geometry =
+          TRANSFORM.Fluid.ClosureRelations.Geometry.Models.DistributedVolume_1D.StraightPipe
+          (
+          dimension=Supply_pipe_data.D,
+          length=Supply_pipe_data.L,
+          dheight=Supply_pipe_data.dH,
+          nV=40),
+      redeclare model FlowModel =
+          TRANSFORM.Fluid.ClosureRelations.PressureLoss.Models.DistributedPipe_1D.SinglePhase_Developed_2Region_Simple
+          (Ks_ab=Ks, Ks_ba=Ks),
+      use_HeatTransfer=true,
+      redeclare model HeatTransfer = S_HeatTransfer,
+      redeclare model InternalHeatGen = S_InternalHeatGen)
+      annotation (Placement(transformation(extent={{-40,-40},{40,40}})));
+        extends HeatTransport.BaseClasses.Partial_SubSystem_B(
+      redeclare replaceable HeatTransport.ControlSystems.CS_Dummy CS,
+      redeclare replaceable HeatTransport.ControlSystems.ED_Dummy ED,
+      redeclare replaceable HeatTransport.data.pipe_data_1 Supply_pipe_data(nV=
+            40));
+
+      replaceable package S_Medium =
+        Modelica.Media.Interfaces.PartialMedium                              "Supply Media"
+      annotation (Dialog(group="Fluid Medium"),__Dymola_choicesAllMatching=true);
+
+      replaceable model S_FlowModel =
+        TRANSFORM.Fluid.ClosureRelations.PressureLoss.Models.DistributedPipe_1D.SinglePhase_Developed_2Region_NumStable
+                                                       constrainedby
+      TRANSFORM.Fluid.ClosureRelations.PressureLoss.Models.DistributedPipe_1D.PartialDistributedStaggeredFlow
+                                                  "Supply Flow model (i.e., momentum, pressure loss, wall friction)" annotation (Dialog(
+          group="Pressure Loss"), choicesAllMatching=true);
+
+       //HT-----------------------------------------------------------------
+
+               //supply
+        import NHES.Systems.HeatTransport.BaseClasses.choices.HT_Mode;
+
+      parameter Boolean S_use_HeatTransfer=false "= true to use the HeatTransfer model"
+      annotation (Dialog(tab="Heat Transfer",group="Supply Side"),choices(checkBox=true));
+
+      parameter Modelica.Units.SI.ThermalConductivity S_w_lambda=15 annotation (Dialog(tab="Heat Transfer",group="Supply Side",enable=S_use_wall_res and S_use_HeatTransfer));
+      parameter Modelica.Units.SI.ThermalConductivity S_i_lambda=15 annotation (Dialog(tab="Heat Transfer",group="Supply Side",enable=S_use_ins_res and S_use_HeatTransfer));
+      parameter Modelica.Units.SI.CoefficientOfHeatTransfer S_alpha=10 "External Supply Convective Heat Transfer Coefficient"
+      annotation (Dialog(tab="Heat Transfer",group="Supply Side"));
+      parameter Modelica.Units.SI.Temperature S_amb_T=303.15 "Supply Side Ambient Temperature"
+      annotation (Dialog(tab="Heat Transfer",group="Supply Side",enable=S_use_HeatTransfer));
+      replaceable model S_HeatTransfer =
+        TRANSFORM.Fluid.ClosureRelations.HeatTransfer.Models.DistributedPipe_1D_MultiTransferSurface.Ideal
+      constrainedby
+      TRANSFORM.Fluid.ClosureRelations.HeatTransfer.Models.DistributedPipe_1D_MultiTransferSurface.PartialHeatTransfer_setT
+      "Coefficient of heat transfer" annotation (Dialog(tab="Heat Transfer",group="Supply Side",enable=S_use_HeatTransfer), choicesAllMatching=true);
+      replaceable model S_InternalHeatGen =
+        TRANSFORM.Fluid.ClosureRelations.InternalVolumeHeatGeneration.Models.DistributedVolume_1D.GenericHeatGeneration
+                                                       constrainedby
+      TRANSFORM.Fluid.ClosureRelations.InternalVolumeHeatGeneration.Models.DistributedVolume_1D.PartialInternalHeatGeneration
+                                                  "Supply Internal heat generation" annotation (Dialog(
+         tab="Heat Transfer",group="Supply Side"), choicesAllMatching=true);
+
+      //init -----------------------------------------------------------------------
+
+      parameter Modelica.Units.SI.AbsolutePressure S_p_a_start=S_Medium.p_default "Supply Port a Initial Pressure" annotation (Dialog(tab="Initialization",group="Supply"));
+      parameter Modelica.Units.SI.AbsolutePressure S_p_b_start=S_Medium.p_default "Supply Port b Initial Pressure" annotation (Dialog(tab="Initialization",group="Supply"));
+      parameter Boolean S_use_T_start=true "Use Initial Temperature for Supply Side" annotation (Dialog(tab="Initialization",group="Supply"));
+      parameter Modelica.Units.SI.Temperature S_T_a_start=S_Medium.T_default "Supply Port a Initial Temperature" annotation (Dialog(tab="Initialization",group="Supply",enable=S_use_T_start));
+      parameter Modelica.Units.SI.Temperature S_T_b_start=S_Medium.T_default "Supply Port b Initial Temperature" annotation (Dialog(tab="Initialization",group="Supply",enable=S_use_T_start));
+      parameter Modelica.Units.SI.SpecificEnthalpy S_h_a_start=S_Medium.h_default "Supply Port a Initial Enthaply" annotation (Dialog(tab="Initialization",group="Supply",enable=not S_use_T_start));
+      parameter Modelica.Units.SI.SpecificEnthalpy S_h_b_start=S_Medium.h_default "Supply Port b Initial Enthaply" annotation (Dialog(tab="Initialization",group="Supply",enable=not S_use_T_start));
+      parameter Modelica.Units.SI.MassFlowRate S_m_flow_a_start=0 "Supply Port a Initial Mass Flow Rate" annotation (Dialog(tab="Initialization",group="Supply"));
+      parameter Modelica.Units.SI.MassFlowRate S_m_flow_b_start=-S_m_flow_a_start "Supply Port a Initial Mass Flow Rate" annotation (Dialog(tab="Initialization",group="Supply"));
+
+    //return
+        //sensors-------------------------------------------------------------------
+
+    TRANSFORM.Fluid.Sensors.Pressure sensor_p_S_in(redeclare package Medium =
+          S_Medium,                           precision=2)
+      annotation (Placement(transformation(extent={{-60,-24},{-40,-44}})));
+    TRANSFORM.Fluid.Sensors.Pressure sensor_p_S_out(redeclare package Medium =
+          S_Medium,                           precision=2)
+      annotation (Placement(transformation(extent={{40,-20},{60,-40}})));
+    TRANSFORM.Fluid.Sensors.Temperature sensor_T_S_in(redeclare package Medium
+        = S_Medium,                           precision=2)
+      annotation (Placement(transformation(extent={{-90,-20},{-70,-40}})));
+    TRANSFORM.Fluid.Sensors.Temperature sensor_T_S_out(redeclare package Medium
+        = S_Medium,                           precision=2)
+      annotation (Placement(transformation(extent={{70,-20},{90,-40}})));
+    Modelica.Blocks.Math.Add Supply_dp(k2=-1)
+      annotation (Placement(transformation(extent={{140,-10},{160,10}})));
+    Modelica.Blocks.Math.Add Supply_dt(k2=-1)
+      annotation (Placement(transformation(extent={{140,-10},{160,-30}})));
+
+    TRANSFORM.HeatAndMassTransfer.BoundaryConditions.Heat.Temperature S_boundary_conv[
+      Supply_pipe_data.nV](T=S_amb_T)
+      annotation (Placement(transformation(extent={{140,20},{120,40}})));
+    TRANSFORM.HeatAndMassTransfer.DiscritizedModels.ClassicalMethod.BoundaryConditions.Convection_constantArea_2DCyl
+      S_convection_constantArea_2DCyl(
+      nNodes=Supply_pipe_data.nV,
+      r_outer=Supply_pipe_data.D + 2*Supply_pipe_data.pth + 2*Supply_pipe_data.ith,
+      length=Supply_pipe_data.L,
+      alphas=S_alpha*ones(Supply_pipe_data.nV))
+      annotation (Placement(transformation(extent={{98,20},{78,40}})));
+
+    parameter TRANSFORM.Units.NonDim Ks[40]=fill(0, 40)
+      "Minor loss coefficients. Flow in direction a -> b";
+    TRANSFORM.HeatAndMassTransfer.Resistances.Heat.Specified_Resistance generic[
+      40](R_val=R_val)
+      annotation (Placement(transformation(extent={{18,20},{38,40}})));
+    parameter SI.ThermalResistance R_val=0.2
+                                            "Thermal resistance";
+  equation
+
+    connect(Supply.port_b, port_b_S)
+      annotation (Line(points={{40,0},{100,0}},   color={0,127,255}));
+    connect(S_convection_constantArea_2DCyl.port_a, S_boundary_conv.port)
+      annotation (Line(points={{99,30},{120,30}}, color={127,0,0}));
+    connect(Supply.port_a, sensor_T_S_in.port) annotation (Line(points={{-40,0},
+            {-80,0},{-80,-20}},                  color={0,127,255}));
+    connect(Supply.port_a, sensor_p_S_in.port)
+      annotation (Line(points={{-40,0},{-50,0},{-50,-24}},  color={0,127,255}));
+    connect(Supply.port_b, sensor_p_S_out.port)
+      annotation (Line(points={{40,0},{50,0},{50,-20}},  color={0,127,255}));
+    connect(Supply.port_b, sensor_T_S_out.port) annotation (Line(points={{40,0},{
+            80,0},{80,-20}},                 color={0,127,255}));
+    connect(sensor_p_S_in.p, Supply_dp.u1) annotation (Line(points={{-44,-34},{
+            -44,-46},{130,-46},{130,6},{138,6}},
+                                           color={0,0,127}));
+    connect(sensor_p_S_out.p, Supply_dp.u2) annotation (Line(points={{56,-30},{
+            66,-30},{66,-44},{130,-44},{130,-6},{138,-6}},
+                                               color={0,0,127}));
+    connect(sensor_T_S_in.T, Supply_dt.u1) annotation (Line(points={{-74,-30},{
+            -64,-30},{-64,-44},{130,-44},{130,-26},{138,-26}},
+                                                    color={0,0,127}));
+    connect(sensor_T_S_out.T, Supply_dt.u2) annotation (Line(points={{86,-30},{
+            86,-44},{130,-44},{130,-14},{138,-14}},
+                                    color={0,0,127}));
+    connect(Supply.port_a, port_a_S)
+      annotation (Line(points={{-40,0},{-100,0}}, color={0,127,255}));
+    connect(Supply.heatPorts[:, 1], generic.port_a) annotation (Line(points={{0,
+            20},{10,20},{10,30},{21,30}}, color={191,0,0}));
+    connect(generic.port_b, S_convection_constantArea_2DCyl.port_b)
+      annotation (Line(points={{35,30},{77,30}}, color={191,0,0}));
+    annotation (Icon(coordinateSystem(preserveAspectRatio=true), graphics={
+          Rectangle(
+            extent={{-100,-4},{100,4}},
+            lineColor={238,46,47},
+            fillColor={238,46,47},
+            fillPattern=FillPattern.Solid),
+          Line(
+            points={{20,-6},{26,-16},{16,-24},{22,-36}},
+            color={238,46,47},
+            smooth=Smooth.Bezier,
+            arrow={Arrow.None,Arrow.Filled},
+            thickness=1,
+            visible=S_use_HeatTransfer),
+          Line(
+            points={{40,-6},{46,-16},{36,-24},{42,-36}},
+            color={238,46,47},
+            smooth=Smooth.Bezier,
+            arrow={Arrow.None,Arrow.Filled},
+            thickness=1,
+            visible=S_use_HeatTransfer),
+          Line(
+            points={{60,-6},{66,-16},{56,-24},{62,-36}},
+            color={238,46,47},
+            smooth=Smooth.Bezier,
+            arrow={Arrow.None,Arrow.Filled},
+            thickness=1,
+            visible=S_use_HeatTransfer),
+          Line(
+            points={{80,-6},{86,-16},{76,-24},{82,-36}},
+            color={238,46,47},
+            smooth=Smooth.Bezier,
+            arrow={Arrow.None,Arrow.Filled},
+            thickness=1,
+            visible=S_use_HeatTransfer),
+          Line(
+            points={{0,-6},{6,-16},{-4,-24},{2,-36}},
+            color={238,46,47},
+            smooth=Smooth.Bezier,
+            arrow={Arrow.None,Arrow.Filled},
+            thickness=1,
+            visible=S_use_HeatTransfer),
+          Line(
+            points={{-20,-6},{-14,-16},{-24,-24},{-18,-36}},
+            color={238,46,47},
+            smooth=Smooth.Bezier,
+            arrow={Arrow.None,Arrow.Filled},
+            thickness=1,
+            visible=S_use_HeatTransfer),
+          Line(
+            points={{20,6},{26,16},{16,24},{22,36}},
+            color={238,46,47},
+            smooth=Smooth.Bezier,
+            arrow={Arrow.None,Arrow.Filled},
+            thickness=1,
+            visible=S_use_HeatTransfer),
+          Line(
+            points={{40,6},{46,16},{36,24},{42,36}},
+            color={238,46,47},
+            smooth=Smooth.Bezier,
+            arrow={Arrow.None,Arrow.Filled},
+            thickness=1,
+            visible=S_use_HeatTransfer),
+          Line(
+            points={{60,6},{66,16},{56,24},{62,36}},
+            color={238,46,47},
+            smooth=Smooth.Bezier,
+            arrow={Arrow.None,Arrow.Filled},
+            thickness=1,
+            visible=S_use_HeatTransfer),
+          Line(
+            points={{80,6},{86,16},{76,24},{82,36}},
+            color={238,46,47},
+            smooth=Smooth.Bezier,
+            arrow={Arrow.None,Arrow.Filled},
+            thickness=1,
+            visible=S_use_HeatTransfer),
+          Line(
+            points={{0,6},{6,16},{-4,24},{2,36}},
+            color={238,46,47},
+            smooth=Smooth.Bezier,
+            arrow={Arrow.None,Arrow.Filled},
+            thickness=1,
+            visible=S_use_HeatTransfer),
+          Line(
+            points={{-20,6},{-14,16},{-24,24},{-18,36}},
+            color={238,46,47},
+            smooth=Smooth.Bezier,
+            arrow={Arrow.None,Arrow.Filled},
+            thickness=1,
+            visible=S_use_HeatTransfer),
+          Text(
+            extent={{-100,-28},{100,-68}},
+            textColor={28,108,200},
+            textString="%name")}),
+          Diagram(coordinateSystem(preserveAspectRatio=false)));
+  end HeatTransport_Onewaynew;
+
+  model HeatTransport_image
+    import HeatTransport;
+    extends HeatTransport.BaseClasses.Partial_SubSystem_A(
+      redeclare replaceable HeatTransport.ControlSystems.CS_Dummy CS,
+      redeclare replaceable HeatTransport.ControlSystems.ED_Dummy ED,
+      redeclare replaceable HeatTransport.data.pipe_data_1 Supply_pipe_data,
+      redeclare replaceable HeatTransport.data.pipe_data_1 Return_pipe_data(
+        L=Supply_pipe_data.L,
+        D=Supply_pipe_data.D,
+        pth=Supply_pipe_data.pth,
+        ith=Supply_pipe_data.ith,
+        nV=Supply_pipe_data.nV,
+        dH=-Supply_pipe_data.dH));
+         replaceable package S_Medium = Modelica.Media.Interfaces.PartialMedium
+      "Supply Media" annotation (Dialog(group="Fluid Medium"),
+        __Dymola_choicesAllMatching=true);
+      replaceable package R_Medium =
+        Modelica.Media.Interfaces.PartialMedium                              "Return Media"
+      annotation (Dialog(group="Fluid Medium"),__Dymola_choicesAllMatching=true);
+       //HT-----------------------------------------------------------------
+
+         //supply
+        import HeatTransport.BaseClasses.choices.HT_Mode;
+
+      parameter Boolean S_use_HeatTransfer=false "= true to use the HeatTransfer model"
+      annotation (Dialog(tab="Heat Transfer",group="Supply Side"),choices(checkBox=true));
+      parameter Boolean S_use_wall_res=false "Use A Given Thermal Resistance Instead of Material Model For Pipe Wall" annotation (Dialog(tab="Heat Transfer",group="Supply Side"),choices(checkBox=true));
+      parameter Boolean S_use_ins_res=false "Use A Given Thermal Resistance Instead of Material Model For Insulation" annotation (Dialog(tab="Heat Transfer",group="Supply Side"),choices(checkBox=true));
+      parameter Modelica.Units.SI.ThermalConductivity S_w_lambda=15 annotation (Dialog(tab="Heat Transfer",group="Supply Side",enable=S_use_wall_res and S_use_HeatTransfer));
+      parameter Modelica.Units.SI.ThermalConductivity S_i_lambda=15 annotation (Dialog(tab="Heat Transfer",group="Supply Side",enable=S_use_ins_res and S_use_HeatTransfer));
+      replaceable package Sp_Material = TRANSFORM.Media.Solids.SS304 constrainedby
+      TRANSFORM.Media.Interfaces.Solids.PartialAlloy
+                                              "Supply Pipe Wall Material properties" annotation (
+        choicesAllMatching=true, Dialog(tab="Heat Transfer",group="Supply Side",enable=S_use_HeatTransfer and not S_use_wall_res));
+      replaceable package Si_Material =
+        TRANSFORM.Media.Solids.FiberGlassGeneric                                 constrainedby
+      TRANSFORM.Media.Interfaces.Solids.PartialAlloy
+                                              "Supply Pipe Insulation Material properties" annotation (
+        choicesAllMatching=true,Dialog(tab="Heat Transfer",group="Supply Side",enable=S_use_HeatTransfer and not S_use_ins_res));
+     // parameter HT_Mode S_HTmode =HT_Mode.Cond  "Heat Transfer Mode"
+     // annotation (Dialog(tab="Heat Transfer",group="Supply Side",enable=S_use_HeatTransfer));
+      parameter Modelica.Units.SI.CoefficientOfHeatTransfer S_alpha=10 "External Supply Convective Heat Transfer Coefficient"
+      annotation (Dialog(tab="Heat Transfer",group="Supply Side",enable=S_HTmode==HT_Mode.Conv));
+      parameter Modelica.Units.SI.Temperature S_amb_T=303.15 "Supply Side Ambient Temperature"
+      annotation (Dialog(tab="Heat Transfer",group="Supply Side",enable=S_use_HeatTransfer));
+      replaceable model S_HeatTransfer =
+        TRANSFORM.Fluid.ClosureRelations.HeatTransfer.Models.DistributedPipe_1D_MultiTransferSurface.Ideal
+      constrainedby
+      TRANSFORM.Fluid.ClosureRelations.HeatTransfer.Models.DistributedPipe_1D_MultiTransferSurface.PartialHeatTransfer_setT
+      "Coefficient of heat transfer" annotation (Dialog(tab="Heat Transfer",group="Supply Side",enable=S_use_HeatTransfer), choicesAllMatching=true);
+      replaceable model S_InternalHeatGen =
+        TRANSFORM.Fluid.ClosureRelations.InternalVolumeHeatGeneration.Models.DistributedVolume_1D.GenericHeatGeneration
+                                                       constrainedby
+      TRANSFORM.Fluid.ClosureRelations.InternalVolumeHeatGeneration.Models.DistributedVolume_1D.PartialInternalHeatGeneration
+                                                  "Supply Internal heat generation" annotation (Dialog(
+         tab="Heat Transfer",group="Supply Side"), choicesAllMatching=true);
+
+      replaceable model S_FlowModel =
+        TRANSFORM.Fluid.ClosureRelations.PressureLoss.Models.DistributedPipe_1D.SinglePhase_Developed_2Region_NumStable
+                                                       constrainedby
+      TRANSFORM.Fluid.ClosureRelations.PressureLoss.Models.DistributedPipe_1D.PartialDistributedStaggeredFlow
+                                                  "Supply Flow model (i.e., momentum, pressure loss, wall friction)" annotation (Dialog(
+          group="Pressure Loss"), choicesAllMatching=true);
+      replaceable model R_FlowModel =
+        TRANSFORM.Fluid.ClosureRelations.PressureLoss.Models.DistributedPipe_1D.SinglePhase_Developed_2Region_NumStable
+                                                       constrainedby
+      TRANSFORM.Fluid.ClosureRelations.PressureLoss.Models.DistributedPipe_1D.PartialDistributedStaggeredFlow
+                                                  "Return Flow model (i.e., momentum, pressure loss, wall friction)" annotation (Dialog(
+          group="Pressure Loss"), choicesAllMatching=true);
+
+          //Return
+
+      parameter Boolean R_use_HeatTransfer=false "= true to use the HeatTransfer model"
+      annotation (Dialog(tab="Heat Transfer",group="Return Side"),choices(checkBox=true));
+      parameter Boolean R_use_wall_res=false "Use Thermal Resistance Instead of Material Model For Pipe Wall" annotation (Dialog(tab="Heat Transfer",group="Return Side"),choices(checkBox=true));
+      parameter Boolean R_use_ins_res=false "Use Thermal Resistance Instead of Material Model For Insulation" annotation (Dialog(tab="Heat Transfer",group="Return Side"),choices(checkBox=true));
+      parameter Modelica.Units.SI.ThermalConductivity R_w_lambda=15 annotation (Dialog(tab="Heat Transfer",group="Return Side",enable=R_use_wall_res and R_use_HeatTransfer));
+      parameter Modelica.Units.SI.ThermalConductivity R_i_lambda=15 annotation (Dialog(tab="Heat Transfer",group="Return Side",enable=R_use_ins_res and R_use_HeatTransfer));
+      replaceable package Rp_Material = TRANSFORM.Media.Solids.SS304 constrainedby
+      TRANSFORM.Media.Interfaces.Solids.PartialAlloy
+                                              "Return Pipe Wall Material properties" annotation (
+        choicesAllMatching=true,Dialog(tab="Heat Transfer",group="Return Side",enable=R_use_HeatTransfer and not R_use_wall_res));
+            replaceable package Ri_Material =
+        TRANSFORM.Media.Solids.FiberGlassGeneric                                       constrainedby
+      TRANSFORM.Media.Interfaces.Solids.PartialAlloy
+                                              "Return Pipe Insulation Material properties" annotation (
+        choicesAllMatching=true, Dialog(
+        tab="Heat Transfer",
+        group="Return Side",
+        enable=
+            R_use_HeatTransfer and not R_use_ins_res));
+    //  parameter HT_Mode R_HTmode =HT_Mode.Cond  "Heat Transfer Mode"
+    //  annotation (Dialog(tab="Heat Transfer",group="Return Side",enable=R_use_HeatTransfer));
+      parameter Modelica.Units.SI.CoefficientOfHeatTransfer R_alpha=10 "External Return Convective Heat Transfer Coefficient"
+      annotation (Dialog(tab="Heat Transfer",group="Return Side",enable=R_HTmode==HT_Mode.Conv));
+      parameter Modelica.Units.SI.Temperature R_amb_T=303.15 "Return Side Ambient Temperature"
+      annotation (Dialog(tab="Heat Transfer",group="Return Side",enable=R_use_HeatTransfer));
+
+      replaceable model R_HeatTransfer =
+        TRANSFORM.Fluid.ClosureRelations.HeatTransfer.Models.DistributedPipe_1D_MultiTransferSurface.Ideal
+      constrainedby
+      TRANSFORM.Fluid.ClosureRelations.HeatTransfer.Models.DistributedPipe_1D_MultiTransferSurface.PartialHeatTransfer_setT
+      "Coefficient of heat transfer" annotation (Dialog(tab="Heat Transfer",group="Return Side",enable=R_use_HeatTransfer), choicesAllMatching=true);
+
+      replaceable model R_InternalHeatGen =
+        TRANSFORM.Fluid.ClosureRelations.InternalVolumeHeatGeneration.Models.DistributedVolume_1D.GenericHeatGeneration
+                                                       constrainedby
+      TRANSFORM.Fluid.ClosureRelations.InternalVolumeHeatGeneration.Models.DistributedVolume_1D.PartialInternalHeatGeneration
+                                                  "Return Internal heat generation" annotation (Dialog(
+          tab="Heat Transfer",group="Return Side"), choicesAllMatching=true);
+
+            //Pumps ---------------------------------------------------------------------
+  //supply
+    parameter Boolean use_Supply_pump=false "Use Supply Side Pump" annotation (Dialog(tab="Pumps"),choices(checkBox=true));
+
+       parameter Boolean S_use_CS=false "Use control system input for pump controls" annotation (Dialog(tab="Pumps"),choices(checkBox=true));
+    //return
+    parameter Boolean use_Return_pump=false "Use Return Side Pump" annotation (Dialog(tab="Pumps"),choices(checkBox=true));
+      parameter Boolean R_use_CS=false "Use control system input for pump controls" annotation (Dialog(tab="Pumps"),choices(checkBox=true));
+
+      //init -----------------------------------------------------------------------
+
+      parameter Modelica.Units.SI.AbsolutePressure S_p_a_start=S_Medium.p_default "Supply Port a Initial Pressure" annotation (Dialog(tab="Initialization",group="Supply"));
+      parameter Modelica.Units.SI.AbsolutePressure S_p_b_start=S_Medium.p_default "Supply Port b Initial Pressure" annotation (Dialog(tab="Initialization",group="Supply"));
+      parameter Boolean S_use_T_start=true "Use Initial Temperature for Supply Side" annotation (Dialog(tab="Initialization",group="Supply"));
+      parameter Modelica.Units.SI.Temperature S_T_a_start=S_Medium.T_default "Supply Port a Initial Temperature" annotation (Dialog(tab="Initialization",group="Supply",enable=S_use_T_start));
+      parameter Modelica.Units.SI.Temperature S_T_b_start=S_Medium.T_default "Supply Port b Initial Temperature" annotation (Dialog(tab="Initialization",group="Supply",enable=S_use_T_start));
+      parameter Modelica.Units.SI.SpecificEnthalpy S_h_a_start=S_Medium.h_default "Supply Port a Initial Enthaply" annotation (Dialog(tab="Initialization",group="Supply",enable=not S_use_T_start));
+      parameter Modelica.Units.SI.SpecificEnthalpy S_h_b_start=S_Medium.h_default "Supply Port b Initial Enthaply" annotation (Dialog(tab="Initialization",group="Supply",enable=not S_use_T_start));
+      parameter Modelica.Units.SI.MassFlowRate S_m_flow_a_start=0 "Supply Port a Initial Mass Flow Rate" annotation (Dialog(tab="Initialization",group="Supply"));
+      parameter Modelica.Units.SI.MassFlowRate S_m_flow_b_start=-S_m_flow_a_start "Supply Port a Initial Mass Flow Rate" annotation (Dialog(tab="Initialization",group="Supply"));
+
+      parameter Modelica.Units.SI.AbsolutePressure R_p_a_start=R_Medium.p_default "Return Port a Initial Pressure" annotation (Dialog(tab="Initialization",group="Return"));
+      parameter Modelica.Units.SI.AbsolutePressure R_p_b_start=R_Medium.p_default "Return Port b Initial Pressure" annotation (Dialog(tab="Initialization",group="Return"));
+      parameter Boolean R_use_T_start=true "Use Initial Temperature for Return Side" annotation (Dialog(tab="Initialization",group="Return"));
+      parameter Modelica.Units.SI.Temperature R_T_a_start=R_Medium.T_default "Return Port a Initial Temperature" annotation (Dialog(tab="Initialization",group="Return",enable= R_use_T_start));
+      parameter Modelica.Units.SI.Temperature R_T_b_start=R_Medium.T_default "Return Port b Initial Temperature" annotation (Dialog(tab="Initialization",group="Return",enable= R_use_T_start));
+      parameter Modelica.Units.SI.SpecificEnthalpy R_h_a_start=R_Medium.h_default "Return Port a Initial Enthaply" annotation (Dialog(tab="Initialization",group="Return",enable=not R_use_T_start));
+      parameter Modelica.Units.SI.SpecificEnthalpy R_h_b_start=R_Medium.h_default "Return Port b Initial Enthaply" annotation (Dialog(tab="Initialization",group="Return",enable=not R_use_T_start));
+      parameter Modelica.Units.SI.MassFlowRate R_m_flow_a_start=0 "Return Port a Initial Mass Flow Rate" annotation (Dialog(tab="Initialization",group="Return"));
+      parameter Modelica.Units.SI.MassFlowRate R_m_flow_b_start=-R_m_flow_a_start "Return Port a Initial Mass Flow Rate" annotation (Dialog(tab="Initialization",group="Return"));
+
+    TRANSFORM.Fluid.Interfaces.FluidPort_Flow port_a_S(redeclare package Medium
+        = S_Medium)
+      annotation (Placement(transformation(extent={{-110,50},{-90,70}}),
+          iconTransformation(extent={{-110,50},{-90,70}})));
+    TRANSFORM.Fluid.Interfaces.FluidPort_State port_b_S(redeclare package
+        Medium =
+          S_Medium)
+      annotation (Placement(transformation(extent={{90,50},{110,70}}),
+          iconTransformation(extent={{90,50},{110,70}})));
+    TRANSFORM.Fluid.Interfaces.FluidPort_Flow port_a_R(redeclare package Medium
+        = R_Medium)
+      annotation (Placement(transformation(extent={{90,-70},{110,-50}}),
+          iconTransformation(extent={{90,-70},{110,-50}})));
+    TRANSFORM.Fluid.Interfaces.FluidPort_State port_b_R(redeclare package
+        Medium =
+          R_Medium)
+      annotation (Placement(transformation(extent={{-110,-70},{-90,-50}}),
+          iconTransformation(extent={{-110,-70},{-90,-50}})));
+    TRANSFORM.Fluid.Pipes.GenericPipe_MultiTransferSurface Supply(redeclare
+        package Medium = S_Medium,
+      use_Ts_start=S_use_T_start,
+      p_a_start=S_p_a_start,
+      p_b_start=S_p_b_start,
+      T_a_start=S_T_a_start,
+      T_b_start=S_T_b_start,
+      h_a_start=S_h_a_start,
+      h_b_start=S_h_b_start,
+      m_flow_a_start=S_m_flow_a_start,
+      m_flow_b_start=S_m_flow_b_start,
+      redeclare model Geometry =
+          TRANSFORM.Fluid.ClosureRelations.Geometry.Models.DistributedVolume_1D.StraightPipe
+          (
+          dimension=Supply_pipe_data.D,
+          length=Supply_pipe_data.L,
+          dheight=Supply_pipe_data.dH,
+          nV=Supply_pipe_data.nV),
+      redeclare model FlowModel = S_FlowModel,
+      use_HeatTransfer=S_use_HeatTransfer,
+      redeclare model HeatTransfer = S_HeatTransfer,
+      redeclare model InternalHeatGen =S_InternalHeatGen)
+      annotation (Placement(transformation(extent={{-20,0},{20,40}})));
+    TRANSFORM.Fluid.Pipes.GenericPipe_MultiTransferSurface Return(redeclare
+        package Medium = R_Medium,
+      use_Ts_start=R_use_T_start,
+      p_a_start=R_p_a_start,
+      p_b_start=R_p_b_start,
+      T_a_start=R_T_a_start,
+      T_b_start=R_T_b_start,
+      h_a_start=R_h_a_start,
+      h_b_start=R_h_b_start,
+      m_flow_a_start=R_m_flow_a_start,
+      m_flow_b_start=R_m_flow_b_start,
+      redeclare model Geometry =
+          TRANSFORM.Fluid.ClosureRelations.Geometry.Models.DistributedVolume_1D.StraightPipe
+          (
+          dimension=Return_pipe_data.D,
+          length=Return_pipe_data.L,
+          dheight=Return_pipe_data.dH,
+          nV=Return_pipe_data.nV),
+      redeclare model FlowModel = R_FlowModel,
+      use_HeatTransfer=R_use_HeatTransfer,
+      redeclare model HeatTransfer = R_HeatTransfer,
+      redeclare model InternalHeatGen = R_InternalHeatGen)
+      annotation (Placement(transformation(extent={{20,0},{-20,-40}})));
+
+    replaceable NHES.Fluid.Machines.Pump_MassFlow Supply_pump(redeclare package
+        Medium = S_Medium, use_input=false) if use_Supply_pump constrainedby
+      TRANSFORM.Fluid.Machines.BaseClasses.PartialPump_Simple annotation (
+      Dialog(tab="Pumps"),
+      choicesAllMatching=true,
+      Placement(transformation(extent={{-80,60},{-60,80}})));
+
+    replaceable NHES.Fluid.Machines.Pump_MassFlow Return_pump(redeclare package
+        Medium = R_Medium, use_input=false) if use_Return_pump constrainedby
+      TRANSFORM.Fluid.Machines.BaseClasses.PartialPump_Simple annotation (
+      Dialog(tab="Pumps"),
+      choicesAllMatching=true,
+      Placement(transformation(extent={{80,-60},{60,-80}})));
+
+    TRANSFORM.Fluid.Sensors.Pressure sensor_p_S_in(redeclare package Medium =
+          S_Medium,                           precision=2)
+      annotation (Placement(transformation(extent={{-60,30},{-40,10}})));
+    TRANSFORM.Fluid.Sensors.Pressure sensor_p_S_out(redeclare package Medium =
+          S_Medium,                           precision=2)
+      annotation (Placement(transformation(extent={{40,30},{60,10}})));
+    TRANSFORM.Fluid.Sensors.Pressure sensor_p_R_out(redeclare package Medium =
+          R_Medium,                           precision=2)
+      annotation (Placement(transformation(extent={{-60,-30},{-40,-10}})));
+    TRANSFORM.Fluid.Sensors.Pressure sensor_p_R_in(redeclare package Medium =
+          R_Medium,                           precision=2)
+      annotation (Placement(transformation(extent={{40,-30},{60,-10}})));
+    TRANSFORM.Fluid.Sensors.Temperature sensor_T_R_out(redeclare package Medium
+        = R_Medium,                           precision=2)
+      annotation (Placement(transformation(extent={{-90,-30},{-70,-10}})));
+    TRANSFORM.Fluid.Sensors.Temperature sensor_T_S_in(redeclare package Medium
+        = S_Medium,                           precision=2)
+      annotation (Placement(transformation(extent={{-90,30},{-70,10}})));
+    TRANSFORM.Fluid.Sensors.Temperature sensor_T_S_out(redeclare package Medium
+        = S_Medium,                           precision=2)
+      annotation (Placement(transformation(extent={{70,30},{90,10}})));
+    TRANSFORM.Fluid.Sensors.Temperature sensor_T_R_in(redeclare package Medium
+        = R_Medium,                           precision=2)
+      annotation (Placement(transformation(extent={{70,-30},{90,-10}})));
+    TRANSFORM.HeatAndMassTransfer.Resistances.Heat.Cylinder R_w_res[
+      Return_pipe_data.nV](
+      L=Return_pipe_data.L/Return_pipe_data.nV,
+      r_in=(Return_pipe_data.D)/2,
+      r_out=(Return_pipe_data.D + 2*Return_pipe_data.pth)/2,
+      lambda=R_w_lambda) if R_use_wall_res
+      annotation (Placement(transformation(extent={{-32,-64},{-12,-44}})));
+    TRANSFORM.HeatAndMassTransfer.Resistances.Heat.Cylinder R_i_res[
+      Return_pipe_data.nV](
+      L=Return_pipe_data.L/Return_pipe_data.nV,
+      r_in=(Return_pipe_data.D + 2*Return_pipe_data.pth)/2,
+      r_out=(Return_pipe_data.D + 2*Return_pipe_data.pth + 2*Return_pipe_data.ith)
+          /2,
+      lambda=R_i_lambda) if R_use_ins_res
+      annotation (Placement(transformation(extent={{-72,-64},{-52,-44}})));
+
+    TRANSFORM.HeatAndMassTransfer.Resistances.Heat.Cylinder S_i_res[
+      Supply_pipe_data.nV](
+      L=Supply_pipe_data.L/Supply_pipe_data.nV,
+      r_in=(Supply_pipe_data.D + 2*Supply_pipe_data.pth)/2,
+      r_out=(Supply_pipe_data.D + 2*Supply_pipe_data.pth + 2*Supply_pipe_data.ith)
+          /2,
+      lambda=S_i_lambda) if S_use_ins_res
+      annotation (Placement(transformation(extent={{54,70},{74,50}})));
+    TRANSFORM.HeatAndMassTransfer.Resistances.Heat.Cylinder S_w_res[
+      Supply_pipe_data.nV](
+      L=Supply_pipe_data.L/Supply_pipe_data.nV,
+      r_in=Supply_pipe_data.D/2,
+      r_out=(Supply_pipe_data.D + 2*Supply_pipe_data.pth)/2,
+      lambda=S_w_lambda) if S_use_wall_res
+      annotation (Placement(transformation(extent={{14,70},{34,50}})));
+    TRANSFORM.HeatAndMassTransfer.Interfaces.HeatPort_Flow R_wi[Return_pipe_data.nV]
+      annotation (Placement(transformation(extent={{-52,-84},{-32,-64}}),
+          iconVisible=false));
+    TRANSFORM.HeatAndMassTransfer.Interfaces.HeatPort_Flow S_wi[Supply_pipe_data.nV]
+      annotation (Placement(transformation(extent={{34,90},{54,70}}),
+          iconVisible=false));
+    TRANSFORM.HeatAndMassTransfer.Interfaces.HeatPort_Flow S_it[Supply_pipe_data.nV]
+      annotation (Placement(transformation(extent={{74,90},{94,70}}),
+          iconVisible=false));
+    TRANSFORM.HeatAndMassTransfer.Interfaces.HeatPort_Flow R_it[Return_pipe_data.nV]
+      annotation (Placement(transformation(extent={{-92,-84},{-72,-64}}),
+          iconVisible=false));
+
+    TRANSFORM.HeatAndMassTransfer.Volumes.SimpleWall_Cylinder S_pipe_wall[
+      Supply_pipe_data.nV](
+      length=Supply_pipe_data.L/Supply_pipe_data.nV,
+      r_inner=Supply_pipe_data.D/2,
+      r_outer=(Supply_pipe_data.D + 2*Supply_pipe_data.pth)/2,
+      redeclare package Material = Sp_Material)
+      if S_use_HeatTransfer and not S_use_wall_res
+      annotation (Placement(transformation(extent={{14,70},{34,90}})));
+    TRANSFORM.HeatAndMassTransfer.Volumes.SimpleWall_Cylinder S_pipe_insulation[
+      Supply_pipe_data.nV](
+      length=Supply_pipe_data.L/Supply_pipe_data.nV,
+      r_inner=(Supply_pipe_data.D + 2*Supply_pipe_data.pth)/2,
+      r_outer=(Supply_pipe_data.D + 2*Supply_pipe_data.pth + 2*Supply_pipe_data.ith)
+          /2,
+      redeclare package Material = Si_Material)
+      if S_use_HeatTransfer and not S_use_ins_res
+      annotation (Placement(transformation(extent={{54,70},{74,90}})));
+    TRANSFORM.HeatAndMassTransfer.BoundaryConditions.Heat.Temperature S_boundary_conv[
+      Supply_pipe_data.nV](T=S_amb_T) if S_use_HeatTransfer and S_with_Conv
+      annotation (Placement(transformation(extent={{154,50},{134,70}})));
+    TRANSFORM.HeatAndMassTransfer.DiscritizedModels.ClassicalMethod.BoundaryConditions.Convection_constantArea_2DCyl
+      S_convection_constantArea_2DCyl(
+      nNodes=Supply_pipe_data.nV,
+      r_outer=Supply_pipe_data.D + 2*Supply_pipe_data.pth + 2*Supply_pipe_data.ith,
+      length=Supply_pipe_data.L,
+      alphas=S_alpha*ones(Supply_pipe_data.nV))
+                                 if S_use_HeatTransfer and S_with_Conv
+      annotation (Placement(transformation(extent={{116,50},{96,70}})));
+
+    TRANSFORM.HeatAndMassTransfer.BoundaryConditions.Heat.Temperature S_boundary_cond[
+      Supply_pipe_data.nV](T=S_amb_T) if S_use_HeatTransfer and S_with_Cond
+      annotation (Placement(transformation(extent={{154,70},{134,90}})));
+    TRANSFORM.HeatAndMassTransfer.Volumes.SimpleWall_Cylinder R_pipe_wall[
+      Return_pipe_data.nV](
+      length=Return_pipe_data.L/Return_pipe_data.nV,
+      r_inner=Return_pipe_data.D/2,
+      r_outer=(Return_pipe_data.D + 2*Return_pipe_data.pth)/2,
+      redeclare package Material = Rp_Material)
+      if S_use_HeatTransfer and not R_use_wall_res
+      annotation (Placement(transformation(extent={{-12,-84},{-32,-64}})));
+    TRANSFORM.HeatAndMassTransfer.Volumes.SimpleWall_Cylinder R_pipe_insulation[
+      Return_pipe_data.nV](
+      length=Return_pipe_data.L/Return_pipe_data.nV,
+      r_inner=(Return_pipe_data.D + 2*Return_pipe_data.pth)/2,
+      r_outer=(Return_pipe_data.D + 2*Return_pipe_data.pth + 2*Return_pipe_data.ith)
+          /2,
+      redeclare package Material = Ri_Material)
+      if S_use_HeatTransfer and not R_use_ins_res
+      annotation (Placement(transformation(extent={{-52,-84},{-72,-64}})));
+    TRANSFORM.HeatAndMassTransfer.BoundaryConditions.Heat.Temperature R_boundary_conv[
+      Supply_pipe_data.nV](T=R_amb_T) if S_use_HeatTransfer and S_with_Conv
+      annotation (Placement(transformation(extent={{-152,-64},{-132,-44}})));
+    TRANSFORM.HeatAndMassTransfer.DiscritizedModels.ClassicalMethod.BoundaryConditions.Convection_constantArea_2DCyl
+      R_convection_constantArea_2DCyl(
+      nNodes=Return_pipe_data.nV,
+      r_outer=Return_pipe_data.D + 2*Return_pipe_data.pth + 2*Return_pipe_data.ith,
+      length=Return_pipe_data.L,
+      alphas=R_alpha*ones(Return_pipe_data.nV))
+                             if S_use_HeatTransfer and S_with_Conv
+      annotation (Placement(transformation(extent={{-112,-64},{-92,-44}})));
+
+    TRANSFORM.HeatAndMassTransfer.BoundaryConditions.Heat.Temperature R_boundary_cond[
+      Return_pipe_data.nV](T=R_amb_T) if S_use_HeatTransfer and S_with_Cond
+      annotation (Placement(transformation(extent={{-152,-84},{-132,-64}})));
+  //protected
+    parameter Boolean S_with_Cond = true;
+     //S_HTmode==HT_Mode.Cond;
+    parameter Boolean S_with_Conv = false;
+    //S_HTmode==HT_Mode.Conv;
+    parameter Boolean R_with_Cond = true;
+    //R_HTmode==HT_Mode.Cond;
+    parameter Boolean R_with_Conv = false;
+    //R_HTmode==HT_Mode.Conv;
+
+  equation
+      //connections
+    if  use_Supply_pump then
+      connect( port_a_S, Supply_pump.port_a);
+      connect( Supply_pump.port_b, Supply.port_a);
+    else
+      connect(port_a_S, Supply.port_a);
+    end if;
+    if  use_Return_pump then
+      connect( port_a_R, Return_pump.port_a);
+      connect( Return_pump.port_b, Return.port_a);
+    else
+      connect(port_a_R, Return.port_a);
+    end if;
+
+    connect(Supply.port_b, port_b_S)
+      annotation (Line(points={{20,20},{20,60},{100,60}},
+                                                  color={0,127,255}));
+    connect(Return.port_b, port_b_R)
+      annotation (Line(points={{-20,-20},{-20,-60},{-100,-60}},
+                                                      color={0,127,255}));
+    connect(S_convection_constantArea_2DCyl.port_a, S_boundary_conv.port)
+      annotation (Line(points={{117,60},{134,60}},color={127,0,0}));
+    connect(Supply.heatPorts[:, 1], S_pipe_wall.port_a)
+      annotation (Line(points={{0,30},{0,80},{14,80}},color={191,0,0}));
+    connect(R_convection_constantArea_2DCyl.port_a, R_boundary_conv.port)
+      annotation (Line(points={{-113,-54},{-132,-54}}, color={127,0,0}));
+    connect(R_pipe_wall.port_a, Return.heatPorts[:, 1])
+      annotation (Line(points={{-12,-74},{0,-74},{0,-30}},
+                                                  color={191,0,0}));
+    connect(Return.port_b, sensor_p_R_out.port) annotation (Line(points={{-20,-20},
+            {-20,-40},{-50,-40},{-50,-30}},
+                                  color={0,127,255}));
+    connect(Return.port_b, sensor_T_R_out.port) annotation (Line(points={{-20,-20},
+            {-20,-40},{-80,-40},{-80,-30}},           color={0,127,255}));
+    connect(Supply.port_a, sensor_T_S_in.port) annotation (Line(points={{-20,20},{
+            -20,30},{-80,30}},                   color={0,127,255}));
+    connect(Supply.port_a, sensor_p_S_in.port)
+      annotation (Line(points={{-20,20},{-20,30},{-50,30}}, color={0,127,255}));
+    connect(Return.port_a, sensor_p_R_in.port)
+      annotation (Line(points={{20,-20},{20,-30},{50,-30}}, color={0,127,255}));
+    connect(Return.port_a, sensor_T_R_in.port) annotation (Line(points={{20,-20},{
+            20,-30},{80,-30}},                   color={0,127,255}));
+    connect(Supply.port_b, sensor_p_S_out.port)
+      annotation (Line(points={{20,20},{20,40},{50,40},{50,30}},
+                                                         color={0,127,255}));
+    connect(Supply.port_b, sensor_T_S_out.port) annotation (Line(points={{20,20},{
+            20,40},{80,40},{80,30}},         color={0,127,255}));
+    connect(R_pipe_insulation.port_a, R_wi)
+      annotation (Line(points={{-52,-74},{-42,-74}},   color={191,0,0}));
+    connect(R_pipe_wall.port_b, R_wi)
+      annotation (Line(points={{-32,-74},{-42,-74}},   color={191,0,0}));
+    connect(R_i_res.port_b, R_wi) annotation (Line(points={{-55,-54},{-42,-54},{-42,
+            -74}},  color={191,0,0}));
+    connect(R_w_res.port_a, R_wi) annotation (Line(points={{-29,-54},{-42,-54},{-42,
+            -74}},  color={191,0,0}));
+    connect(R_w_res.port_b, Return.heatPorts[:, 1])
+      annotation (Line(points={{-15,-54},{0,-54},{0,-30}},color={191,0,0}));
+    connect(S_wi, S_pipe_insulation.port_a)
+      annotation (Line(points={{44,80},{54,80}},   color={191,0,0}));
+    connect(S_pipe_wall.port_b, S_wi)
+      annotation (Line(points={{34,80},{44,80}},   color={191,0,0}));
+    connect(S_w_res.port_a, Supply.heatPorts[:, 1])
+      annotation (Line(points={{17,60},{0,60},{0,30}},color={191,0,0}));
+    connect(S_w_res.port_b, S_wi)
+      annotation (Line(points={{31,60},{44,60},{44,80}},  color={191,0,0}));
+    connect(S_i_res.port_a, S_wi)
+      annotation (Line(points={{57,60},{44,60},{44,80}},  color={191,0,0}));
+    connect(S_pipe_insulation.port_b, S_it)
+      annotation (Line(points={{74,80},{84,80}},   color={191,0,0}));
+    connect(S_i_res.port_b, S_it)
+      annotation (Line(points={{71,60},{84,60},{84,80}},  color={191,0,0}));
+    connect(S_convection_constantArea_2DCyl.port_b, S_it)
+      annotation (Line(points={{95,60},{84,60},{84,80}},  color={127,0,0}));
+    connect(S_it, S_boundary_cond.port)
+      annotation (Line(
+      points={{84,80},{134,80}},   color={191,0,0}));
+    connect(R_pipe_insulation.port_b, R_it)
+      annotation (Line(points={{-72,-74},{-82,-74}},   color={191,0,0}));
+    connect(R_it, R_convection_constantArea_2DCyl.port_b) annotation (Line(points={{-82,-74},
+            {-82,-54},{-91,-54}},            color={191,0,0}));
+    connect(R_it, R_boundary_cond.port)
+      annotation (Line(points={{-82,-74},{-132,-74}},   color={191,0,0}));
+    connect(R_i_res.port_a, R_it) annotation (Line(points={{-69,-54},{-82,-54},{-82,
+            -74}},  color={191,0,0}));
+    connect(sensor_p_S_in.port, sensor_T_S_in.port)
+      annotation (Line(points={{-50,30},{-80,30}}, color={0,127,255}));
+    connect(actuatorBus.Return_Pump, Return_pump.inputSignal) annotation (Line(
+        points={{30,100},{160,100},{160,-100},{70,-100},{70,-77.3}},
+        color={111,216,99},
+        pattern=LinePattern.Dash,
+        thickness=0.5), Text(
+        string="%first",
+        index=-1,
+        extent={{-3,-6},{-3,-6}},
+        horizontalAlignment=TextAlignment.Right));
+    connect(actuatorBus.Supply_Pump, Supply_pump.inputSignal) annotation (Line(
+        points={{30,100},{160,100},{160,-100},{-160,-100},{-160,100},{-70,100},
+            {-70,77.3}},
+        color={111,216,99},
+        pattern=LinePattern.Dash,
+        thickness=0.5), Text(
+        string="%first",
+        index=-1,
+        extent={{-3,6},{-3,6}},
+        horizontalAlignment=TextAlignment.Right));
+    connect(sensorBus.S_T_in, sensor_T_S_in.T) annotation (Line(
+        points={{-30,100},{-30,40},{-74,40},{-74,20}},
+        color={239,82,82},
+        pattern=LinePattern.Dash,
+        thickness=0.5), Text(
+        string="%first",
+        index=-1,
+        extent={{-3,6},{-3,6}},
+        horizontalAlignment=TextAlignment.Right));
+    connect(sensorBus.S_p_in, sensor_p_S_in.p) annotation (Line(
+        points={{-30,100},{-30,40},{-44,40},{-44,20}},
+        color={239,82,82},
+        pattern=LinePattern.Dash,
+        thickness=0.5), Text(
+        string="%first",
+        index=-1,
+        extent={{-3,6},{-3,6}},
+        horizontalAlignment=TextAlignment.Right));
+    connect(sensorBus.S_T_out, sensor_T_S_out.T) annotation (Line(
+        points={{-30,100},{-30,36},{86,36},{86,20}},
+        color={239,82,82},
+        pattern=LinePattern.Dash,
+        thickness=0.5), Text(
+        string="%first",
+        index=-1,
+        extent={{-3,6},{-3,6}},
+        horizontalAlignment=TextAlignment.Right));
+    connect(sensorBus.S_p_out, sensor_p_S_out.p) annotation (Line(
+        points={{-30,100},{-30,36},{56,36},{56,20}},
+        color={239,82,82},
+        pattern=LinePattern.Dash,
+        thickness=0.5), Text(
+        string="%first",
+        index=-1,
+        extent={{-3,6},{-3,6}},
+        horizontalAlignment=TextAlignment.Right));
+    connect(sensorBus.R_T_out, sensor_T_R_out.T) annotation (Line(
+        points={{-30,100},{-30,40},{-74,40},{-74,-20}},
+        color={239,82,82},
+        pattern=LinePattern.Dash,
+        thickness=0.5), Text(
+        string="%first",
+        index=-1,
+        extent={{-3,6},{-3,6}},
+        horizontalAlignment=TextAlignment.Right));
+    connect(sensorBus.R_p_out, sensor_p_R_out.p) annotation (Line(
+        points={{-30,100},{-30,40},{-44,40},{-44,-20}},
+        color={239,82,82},
+        pattern=LinePattern.Dash,
+        thickness=0.5), Text(
+        string="%first",
+        index=-1,
+        extent={{-3,6},{-3,6}},
+        horizontalAlignment=TextAlignment.Right));
+    connect(sensorBus.R_p_in, sensor_p_R_in.p) annotation (Line(
+        points={{-30,100},{-30,36},{56,36},{56,-20}},
+        color={239,82,82},
+        pattern=LinePattern.Dash,
+        thickness=0.5), Text(
+        string="%first",
+        index=-1,
+        extent={{-3,6},{-3,6}},
+        horizontalAlignment=TextAlignment.Right));
+    connect(sensorBus.R_T_in, sensor_T_R_in.T) annotation (Line(
+        points={{-30,100},{-30,36},{86,36},{86,-20}},
+        color={239,82,82},
+        pattern=LinePattern.Dash,
+        thickness=0.5), Text(
+        string="%first",
+        index=-1,
+        extent={{-3,6},{-3,6}},
+        horizontalAlignment=TextAlignment.Right));
+    annotation (Icon(coordinateSystem(preserveAspectRatio=true), graphics={
+            Text(
+            extent={{-100,-70},{100,-92}},
+            textColor={0,0,0},
+            textString="%name"),
+          Rectangle(
+            extent={{-90,20},{-84,56}},
+            lineColor={255,0,0},
+            lineThickness=0.5,
+            fillColor={255,102,105},
+            fillPattern=FillPattern.Solid),
+          Rectangle(
+            extent={{-84,30},{-36,46}},
+            lineColor={255,0,0},
+            lineThickness=0.5,
+            fillColor={255,102,105},
+            fillPattern=FillPattern.Solid),
+          Rectangle(
+            extent={{-36,20},{-30,56}},
+            lineColor={255,0,0},
+            lineThickness=0.5,
+            fillColor={255,102,105},
+            fillPattern=FillPattern.Solid),
+          Rectangle(
+            extent={{-84,54},{-82,52}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{-84,22},{-82,24}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{-84,46},{-82,48}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{-84,40},{-82,42}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{-84,34},{-82,36}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{-84,28},{-82,30}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{-38,22},{-36,24}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{-38,28},{-36,30}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{-38,34},{-36,36}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{-38,40},{-36,42}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{-38,46},{-36,48}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{-38,54},{-36,52}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{-30,20},{-24,56}},
+            lineColor={255,0,0},
+            lineThickness=0.5,
+            fillColor={255,102,105},
+            fillPattern=FillPattern.Solid),
+          Rectangle(
+            extent={{-24,30},{24,46}},
+            lineColor={255,0,0},
+            lineThickness=0.5,
+            fillColor={255,102,105},
+            fillPattern=FillPattern.Solid),
+          Rectangle(
+            extent={{24,20},{30,56}},
+            lineColor={255,0,0},
+            lineThickness=0.5,
+            fillColor={255,102,105},
+            fillPattern=FillPattern.Solid),
+          Rectangle(
+            extent={{-24,54},{-22,52}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{-24,22},{-22,24}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{-24,46},{-22,48}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{-24,40},{-22,42}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{-24,34},{-22,36}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{-24,28},{-22,30}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{22,22},{24,24}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{22,28},{24,30}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{22,34},{24,36}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{22,40},{24,42}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{22,46},{24,48}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{22,54},{24,52}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{30,20},{36,56}},
+            lineColor={255,0,0},
+            lineThickness=0.5,
+            fillColor={255,102,105},
+            fillPattern=FillPattern.Solid),
+          Rectangle(
+            extent={{36,30},{84,46}},
+            lineColor={255,0,0},
+            lineThickness=0.5,
+            fillColor={255,102,105},
+            fillPattern=FillPattern.Solid),
+          Rectangle(
+            extent={{84,20},{90,56}},
+            lineColor={255,0,0},
+            lineThickness=0.5,
+            fillColor={255,102,105},
+            fillPattern=FillPattern.Solid),
+          Rectangle(
+            extent={{36,54},{38,52}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{36,22},{38,24}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{36,46},{38,48}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{36,40},{38,42}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{36,34},{38,36}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{36,28},{38,30}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{82,22},{84,24}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{82,28},{84,30}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{82,34},{84,36}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{82,40},{84,42}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{82,46},{84,48}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{82,54},{84,52}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{-90,-56},{-84,-20}},
+            lineColor={28,108,200},
+            lineThickness=0.5,
+            fillColor={0,128,255},
+            fillPattern=FillPattern.Solid),
+          Rectangle(
+            extent={{-84,-46},{-36,-30}},
+            lineColor={28,108,200},
+            lineThickness=0.5,
+            fillColor={0,128,255},
+            fillPattern=FillPattern.Solid),
+          Rectangle(
+            extent={{-36,-56},{-30,-20}},
+            lineColor={28,108,200},
+            lineThickness=0.5,
+            fillColor={0,128,255},
+            fillPattern=FillPattern.Solid),
+          Rectangle(
+            extent={{-84,-22},{-82,-24}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{-84,-54},{-82,-52}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{-84,-30},{-82,-28}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{-84,-36},{-82,-34}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{-84,-42},{-82,-40}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{-84,-48},{-82,-46}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{-38,-54},{-36,-52}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{-38,-48},{-36,-46}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{-38,-42},{-36,-40}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{-38,-36},{-36,-34}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{-38,-30},{-36,-28}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{-38,-22},{-36,-24}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{-30,-56},{-24,-20}},
+            lineColor={28,108,200},
+            lineThickness=0.5,
+            fillColor={0,128,255},
+            fillPattern=FillPattern.Solid),
+          Rectangle(
+            extent={{-24,-46},{24,-30}},
+            lineColor={28,108,200},
+            lineThickness=0.5,
+            fillColor={0,128,255},
+            fillPattern=FillPattern.Solid),
+          Rectangle(
+            extent={{24,-56},{30,-20}},
+            lineColor={28,108,200},
+            lineThickness=0.5,
+            fillColor={0,128,255},
+            fillPattern=FillPattern.Solid),
+          Rectangle(
+            extent={{-24,-22},{-22,-24}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{-24,-54},{-22,-52}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{-24,-30},{-22,-28}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{-24,-36},{-22,-34}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{-24,-42},{-22,-40}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{-24,-48},{-22,-46}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{22,-54},{24,-52}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{22,-48},{24,-46}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{22,-42},{24,-40}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{22,-36},{24,-34}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{22,-30},{24,-28}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{22,-22},{24,-24}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{30,-56},{36,-20}},
+            lineColor={28,108,200},
+            lineThickness=0.5,
+            fillColor={0,128,255},
+            fillPattern=FillPattern.Solid),
+          Rectangle(
+            extent={{36,-46},{84,-30}},
+            lineColor={28,108,200},
+            lineThickness=0.5,
+            fillColor={0,128,255},
+            fillPattern=FillPattern.Solid),
+          Rectangle(
+            extent={{84,-56},{90,-20}},
+            lineColor={28,108,200},
+            lineThickness=0.5,
+            fillColor={0,128,255},
+            fillPattern=FillPattern.Solid),
+          Rectangle(
+            extent={{36,-22},{38,-24}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{36,-54},{38,-52}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{36,-30},{38,-28}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{36,-36},{38,-34}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{36,-42},{38,-40}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{36,-48},{38,-46}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{82,-54},{84,-52}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{82,-48},{84,-46}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{82,-42},{84,-40}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{82,-36},{84,-34}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{82,-30},{84,-28}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder),
+          Rectangle(
+            extent={{82,-22},{84,-24}},
+            lineColor={175,175,175},
+            lineThickness=0.5,
+            fillColor={175,175,175},
+            fillPattern=FillPattern.HorizontalCylinder)}),
+          Diagram(coordinateSystem(preserveAspectRatio=false)));
+  end HeatTransport_image;
+
+  model TwoWayTransport
+    extends BaseClasses.Partial_SubSystem_A(
+    redeclare replaceable ControlSystems.CS_Dummy CS,
+    redeclare replaceable ControlSystems.ED_Dummy ED,
+    redeclare replaceable data.pipe_data_1 Supply_pipe_data,
+    redeclare replaceable data.pipe_data_1 Return_pipe_data);
+
+   //---------------------------------------------------------
+   //   Supply Nominal
+   parameter Modelica.Units.SI.MassFlowRate nominal_m_flow_supply=44 annotation(Dialog(group="Supply"));
+   parameter Modelica.Units.SI.AbsolutePressure nominal_P_sink_supply=1e5
+                                                          annotation(Dialog(group="Supply"));
+   parameter SI.Thickness th_i_supply=0.1
+                                  annotation(Dialog(group="Supply"));
+   parameter SI.ThermalConductivity lambda_supply=0.08
+                                               annotation(Dialog(group="Supply"));
+   parameter SI.Temperature S_amb_T=300 "Ambient External Temperature on Supply Side" annotation(Dialog(group="Supply"));
+   parameter SI.CoefficientOfHeatTransfer S_alpha=20 "External Convective Heat Transfer Coefficient on Supply Side" annotation(Dialog(group="Supply"));
+   parameter Modelica.Units.SI.SpecificEnthalpy nominal_h_sink_supply=3e6
+                                                          annotation(Dialog(group="Supply"));
+   parameter Real K_supply=2.8 "Local Loss Coe"
+                                               annotation(Dialog(group="Supply"));
+   parameter SI.Length L_supply=500 "Supply Pipe Length"
+                                                        annotation(Dialog(group="Supply"));
+   parameter SI.Velocity v_supply=6 annotation(Dialog(group="Supply"));
+   //   Return Nominal
+   parameter Modelica.Units.SI.MassFlowRate nominal_m_flow_return=44 annotation(Dialog(group="Return"));
+   parameter Modelica.Units.SI.AbsolutePressure nominal_P_sink_return=1e5
+                                                          annotation(Dialog(group="Return"));
+   parameter SI.Thickness th_i_return=0.1
+                                  annotation(Dialog(group="Return"));
+   parameter SI.ThermalConductivity lambda_return=0.08
+                                               annotation(Dialog(group="Return"));
+   parameter SI.Temperature R_amb_T=300 "Ambient External Temperature on Return Side" annotation(Dialog(group="Return"));
+   parameter SI.CoefficientOfHeatTransfer R_alpha=20 "External Convective Heat Transfer Coefficient on Return Side" annotation(Dialog(group="Return"));
+   parameter Modelica.Units.SI.SpecificEnthalpy nominal_h_sink_return=3e6
+                                                          annotation(Dialog(group="Return"));
+   parameter Real K_return=2.8 "Local Loss Coe"
+                                               annotation(Dialog(group="Return"));
+   parameter SI.Length L_return=500 "Return Pipe Length"
+                                                        annotation(Dialog(group="Return"));
+   parameter SI.Velocity v_return=6 annotation(Dialog(group="Return"));
+   //  Supply Init
+   parameter SI.AbsolutePressure S_p_a_start=nominal_P_sink_supply annotation(Dialog(tab="Initialization",group="Supply"));
+   parameter SI.AbsolutePressure S_p_b_start=nominal_P_sink_supply annotation(Dialog(tab="Initialization",group="Supply"));
+   parameter Boolean S_use_T_start=false;
+   parameter SI.Temperature S_T_a_start=Medium.temperature_phX(nominal_P_sink_supply,nominal_h_sink_supply) annotation(Dialog(tab="Initialization",group="Supply"));
+   parameter SI.Temperature S_T_b_start=Medium.temperature_phX(nominal_P_sink_supply,nominal_h_sink_supply) annotation(Dialog(tab="Initialization",group="Supply"));
+   parameter SI.SpecificEnthalpy S_h_a_start=nominal_h_sink_supply annotation(Dialog(tab="Initialization",group="Supply"));
+   parameter SI.SpecificEnthalpy S_h_b_start=nominal_h_sink_supply annotation(Dialog(tab="Initialization",group="Supply"));
+   parameter SI.MassFlowRate S_m_flow_a_start=nominal_m_flow_supply annotation(Dialog(tab="Initialization",group="Supply"));
+   parameter SI.MassFlowRate S_m_flow_b_start=-nominal_m_flow_supply annotation(Dialog(tab="Initialization",group="Supply"));
+
+
+   //  Return Init
+   parameter SI.AbsolutePressure R_p_a_start=nominal_P_sink_return annotation(Dialog(tab="Initialization",group="Return"));
+   parameter SI.AbsolutePressure R_p_b_start=nominal_P_sink_return annotation(Dialog(tab="Initialization",group="Return"));
+   parameter Boolean R_use_T_start=false;
+   parameter SI.Temperature R_T_a_start=Medium.temperature_phX(nominal_P_sink_return,nominal_h_sink_return) annotation(Dialog(tab="Initialization",group="Return"));
+   parameter SI.Temperature R_T_b_start=Medium.temperature_phX(nominal_P_sink_return,nominal_h_sink_return) annotation(Dialog(tab="Initialization",group="Return"));
+   parameter SI.SpecificEnthalpy R_h_a_start=nominal_h_sink_return annotation(Dialog(tab="Initialization",group="Return"));
+   parameter SI.SpecificEnthalpy R_h_b_start=nominal_h_sink_return annotation(Dialog(tab="Initialization",group="Return"));
+   parameter SI.MassFlowRate R_m_flow_a_start=nominal_m_flow_return annotation(Dialog(tab="Initialization",group="Return"));
+   parameter SI.MassFlowRate R_m_flow_b_start=-nominal_m_flow_return annotation(Dialog(tab="Initialization",group="Return"));
+
+
+
+
+   final parameter SI.Diameter D_s(fixed=false)=0.51;
+   final parameter Integer nU_s(fixed=false)=1;
+   final parameter Integer nSp_s(fixed=false)=1;
+   final parameter Real [:] Ks_s(fixed=false)=fill(0,40);
+   final parameter Integer i_s(fixed=false)=1;
+   final parameter Integer j_s(fixed=false)=1;
+   final parameter Integer g_s(fixed=false)=1;
+   final parameter SI.ThermalResistance S_R_val(fixed=false)=10 "Thermal resistance";
+
+
+   final parameter SI.Diameter D_r(fixed=false)=0.51;
+   final parameter Integer nU_r(fixed=false)=1;
+   final parameter Integer nSp_r(fixed=false)=1;
+   final parameter Real [:] Ks_r(fixed=false)=fill(0,40);
+   final parameter Integer i_r(fixed=false)=1;
+   final parameter Integer j_r(fixed=false)=1;
+   final parameter Integer g_r(fixed=false)=1;
+   final parameter SI.ThermalResistance R_R_val(fixed=false)=10 "Thermal resistance";
+
+
+
+    replaceable model FlowModel =
+        TRANSFORM.Fluid.ClosureRelations.PressureLoss.Models.DistributedPipe_1D.SinglePhase_Developed_2Region_NumStable
+      annotation (choicesAllMatching=true);
+    TRANSFORM.Fluid.Pipes.GenericPipe_MultiTransferSurface Supply(
+      redeclare package Medium = Medium,
+      use_Ts_start=S_use_T_start,
+      p_a_start=S_p_a_start,
+      p_b_start=S_p_b_start,
+      T_a_start=S_T_a_start,
+      T_b_start=S_T_b_start,
+      h_a_start=S_h_a_start,
+      h_b_start=S_h_b_start,
+      m_flow_a_start=S_m_flow_a_start,
+      m_flow_b_start=S_m_flow_b_start,
+      redeclare model Geometry =
+          TRANSFORM.Fluid.ClosureRelations.Geometry.Models.DistributedVolume_1D.StraightPipe
+          (
+          dimension=Supply_pipe_data.D,
+          length=Supply_pipe_data.L,
+          dheight=Supply_pipe_data.dH,
+          nV=Supply_pipe_data.nV),
+      redeclare model FlowModel =
+          TRANSFORM.Fluid.ClosureRelations.PressureLoss.Models.DistributedPipe_1D.SinglePhase_Developed_2Region_Simple
+          (Ks_ab=Ks_s, Ks_ba=Ks_s),
+      use_HeatTransfer=true)
+      annotation (Placement(transformation(extent={{-30,20},{30,80}})));
+    TRANSFORM.Fluid.Sensors.Pressure sensor_p_S_in(redeclare package Medium =
+          Medium,   precision=2)
+      annotation (Placement(transformation(extent={{-50,30},{-30,10}})));
+    TRANSFORM.Fluid.Sensors.Pressure sensor_p_S_out(redeclare package Medium =
+          Medium,   precision=2)
+      annotation (Placement(transformation(extent={{30,30},{50,10}})));
+    TRANSFORM.Fluid.Sensors.Temperature sensor_T_S_in(redeclare package Medium =
+          Medium,   precision=2)
+      annotation (Placement(transformation(extent={{-80,34},{-60,14}})));
+    TRANSFORM.Fluid.Sensors.Temperature sensor_T_S_out(redeclare package Medium =
+          Medium,   precision=2)
+      annotation (Placement(transformation(extent={{60,30},{80,10}})));
+    TRANSFORM.HeatAndMassTransfer.BoundaryConditions.Heat.Temperature S_boundary_conv[
+      Supply_pipe_data.nV](T=S_amb_T)
+      annotation (Placement(transformation(extent={{120,100},{100,120}})));
+    TRANSFORM.HeatAndMassTransfer.DiscritizedModels.ClassicalMethod.BoundaryConditions.Convection_constantArea_2DCyl
+      S_convection_constantArea_2DCyl(
+      nNodes=Supply_pipe_data.nV,
+      r_outer=Supply_pipe_data.D + 2*Supply_pipe_data.pth + 2*Supply_pipe_data.ith,
+      length=Supply_pipe_data.L,
+      alphas=S_alpha*ones(Supply_pipe_data.nV))
+      annotation (Placement(transformation(extent={{80,100},{60,120}})));
+
+    TRANSFORM.HeatAndMassTransfer.Resistances.Heat.Specified_Resistance S_res[
+      Supply_pipe_data.nV](R_val=S_R_val)
+      annotation (Placement(transformation(extent={{10,70},{30,90}})));
+    TRANSFORM.Fluid.Pipes.GenericPipe_MultiTransferSurface Return(
+      redeclare package Medium = Medium,
+      use_Ts_start=R_use_T_start,
+      p_a_start=R_p_a_start,
+      p_b_start=R_p_b_start,
+      T_a_start=R_T_a_start,
+      T_b_start=R_T_b_start,
+      h_a_start=R_h_a_start,
+      h_b_start=R_h_b_start,
+      m_flow_a_start=R_m_flow_a_start,
+      m_flow_b_start=R_m_flow_b_start,
+      redeclare model Geometry =
+          TRANSFORM.Fluid.ClosureRelations.Geometry.Models.DistributedVolume_1D.StraightPipe
+          (
+          dimension=Return_pipe_data.D,
+          length=Return_pipe_data.L,
+          dheight=Return_pipe_data.dH,
+          nV=Return_pipe_data.nV),
+      redeclare model FlowModel =
+          TRANSFORM.Fluid.ClosureRelations.PressureLoss.Models.DistributedPipe_1D.SinglePhase_Developed_2Region_Simple
+          (Ks_ab=Ks_r, Ks_ba=Ks_r),
+      use_HeatTransfer=true)
+      annotation (Placement(transformation(extent={{30,-126},{-30,-66}})));
+    TRANSFORM.Fluid.Sensors.Pressure sensor_p_R_in(redeclare package Medium =
+          Medium, precision=2)
+      annotation (Placement(transformation(extent={{70,-110},{90,-130}})));
+    TRANSFORM.Fluid.Sensors.Pressure sensor_p_R_out(redeclare package Medium =
+          Medium, precision=2)
+      annotation (Placement(transformation(extent={{-90,-110},{-70,-130}})));
+    TRANSFORM.Fluid.Sensors.Temperature sensor_T_R_in(redeclare package Medium =
+          Medium, precision=2)
+      annotation (Placement(transformation(extent={{30,-110},{50,-130}})));
+    TRANSFORM.Fluid.Sensors.Temperature sensor_T_R_out(redeclare package Medium =
+          Medium, precision=2)
+      annotation (Placement(transformation(extent={{-50,-110},{-30,-130}})));
+    TRANSFORM.HeatAndMassTransfer.Resistances.Heat.Specified_Resistance R_res[
+      Return_pipe_data.nV](R_val=R_R_val)
+      annotation (Placement(transformation(extent={{6,-64},{26,-44}})));
+    TRANSFORM.HeatAndMassTransfer.DiscritizedModels.ClassicalMethod.BoundaryConditions.Convection_constantArea_2DCyl
+      S_convection_constantArea_2DCyl1(
+      nNodes=Return_pipe_data.nV,
+      r_outer=Return_pipe_data.D + 2*Return_pipe_data.pth + 2*Return_pipe_data.ith,
+      length=Return_pipe_data.L,
+      alphas=R_alpha*ones(Return_pipe_data.nV))
+      annotation (Placement(transformation(extent={{76,-34},{56,-14}})));
+
+    TRANSFORM.HeatAndMassTransfer.BoundaryConditions.Heat.Temperature S_boundary_conv1
+                                                                                     [
+      Supply_pipe_data.nV](T=R_amb_T)
+      annotation (Placement(transformation(extent={{116,-34},{96,-14}})));
+
+
+  initial algorithm
+    nU_s:= integer( ceil(L_supply/125));
+    nSp_s:=integer(floor(40/nU_s));
+    i_s:=1;
+    j_s:=1;
+    g_s:=0;
+    while i_s <41 loop
+      if j_s==nSp_s and g_s<nU_s then
+        Ks_s[i]:=K_supply;
+        j_s:=1;
+        g_s:=g_s+1;
+      else
+        Ks_s[i]:=0;
+        j_s:=j_s+1;
+      end if;
+      i_s:=i_s+1;
+    end while;
+
+    nU_r:= integer( ceil(L_return/125));
+    nSp_r:=integer(floor(40/nU_r));
+    i_r:=1;
+    j_r:=1;
+    g_r:=0;
+    while i_r <41 loop
+      if j_r==nSp_r and g_r<nU_r then
+        Ks_r[i]:=K_return;
+        j_r:=1;
+        g_r:=g_r+1;
+      else
+        Ks_r[i]:=0;
+        j_r:=j_r+1;
+      end if;
+      i_r:=i_r+1;
+    end while;
+
+  initial equation
+    nominal_m_flow_supply=v_supply*Modelica.Constants.pi*(D_s^2)*0.25
+                                            *Medium.density(Medium.setState_ph(nominal_P_sink_supply,nominal_h_sink_supply));
+    S_R_val=(D_s+2*th_i_supply)*ln((D_s+2*th_i_supply)/D_s)/lambda_supply;
+    nominal_m_flow_return=v_return*Modelica.Constants.pi*(D_r^2)*0.25
+                                            *Medium.density(Medium.setState_ph(nominal_P_rink_return,nominal_h_rink_return));
+    R_R_val=(D_r+2*th_i_return)*ln((D_r+2*th_i_return)/D_r)/lambda_return;
+
+  equation
+
+
+
+    connect(S_convection_constantArea_2DCyl.port_a,S_boundary_conv. port)
+      annotation (Line(points={{81,110},{100,110}},
+                                                  color={127,0,0}));
+    connect(Supply.port_a,sensor_T_S_in. port) annotation (Line(points={{-30,50},{
+            -70,50},{-70,34}},                   color={0,127,255}));
+    connect(Supply.port_a,sensor_p_S_in. port)
+      annotation (Line(points={{-30,50},{-40,50},{-40,30}}, color={0,127,255}));
+    connect(Supply.port_b,sensor_p_S_out. port)
+      annotation (Line(points={{30,50},{40,50},{40,30}}, color={0,127,255}));
+    connect(Supply.port_b,sensor_T_S_out. port) annotation (Line(points={{30,50},{
+            70,50},{70,30}},                 color={0,127,255}));
+    connect(S_res.port_b, S_convection_constantArea_2DCyl.port_b)
+      annotation (Line(points={{27,80},{59,80},{59,110}}, color={191,0,0}));
+    connect(S_res.port_a, Supply.heatPorts[:, 1])
+      annotation (Line(points={{13,80},{0,80},{0,65}}, color={191,0,0}));
+    connect(Supply.port_b, port_b_supply) annotation (Line(points={{30,50},{80,50},
+            {80,80},{100,80}}, color={0,127,255}));
+    connect(port_a_supply, Supply.port_a) annotation (Line(points={{-100,80},{-80,
+            80},{-80,50},{-30,50}}, color={0,127,255}));
+    connect(Return.port_a, sensor_T_R_in.port)
+      annotation (Line(points={{30,-96},{40,-96},{40,-110}}, color={0,127,255}));
+    connect(Return.port_a, sensor_p_R_in.port)
+      annotation (Line(points={{30,-96},{80,-96},{80,-110}}, color={0,127,255}));
+    connect(Return.port_b, sensor_p_R_out.port) annotation (Line(points={{-30,-96},
+            {-80,-96},{-80,-110}}, color={0,127,255}));
+    connect(Return.port_b, sensor_T_R_out.port) annotation (Line(points={{-30,-96},
+            {-40,-96},{-40,-110}}, color={0,127,255}));
+    connect(R_res.port_b, S_convection_constantArea_2DCyl1.port_b) annotation (
+        Line(points={{23,-54},{50,-54},{50,-24},{55,-24}}, color={191,0,0}));
+    connect(R_res.port_a, Return.heatPorts[:, 1])
+      annotation (Line(points={{9,-54},{0,-54},{0,-81}}, color={191,0,0}));
+    connect(S_convection_constantArea_2DCyl1.port_a, S_boundary_conv1.port)
+      annotation (Line(points={{77,-24},{96,-24}}, color={127,0,0}));
+    connect(Return.port_a, port_a_return) annotation (Line(points={{30,-96},{86,-96},
+            {86,-60},{100,-60}}, color={0,127,255}));
+    connect(Return.port_b, port_b_return) annotation (Line(points={{-30,-96},{-100,
+            -96},{-100,-60}}, color={0,127,255}));
+    annotation (Icon(coordinateSystem(preserveAspectRatio=false)), Diagram(
+          coordinateSystem(preserveAspectRatio=false)));
+  end TwoWayTransport;
   annotation (            Icon(graphics={
         Rectangle(
           extent={{-70,-30},{30,40}},

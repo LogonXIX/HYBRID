@@ -69,8 +69,8 @@ model MEE_FC_ss_UTextnode "Multi-Effect Evaporator"
     use_h_in=true,
     nPorts=1)
     annotation (Placement(transformation(extent={{-40,-70},{-60,-50}})));
-  TRANSFORM.Fluid.Sensors.MassFlowRate sensor_m_flow(redeclare package Medium =
-        Medium)
+  TRANSFORM.Fluid.Sensors.MassFlowRate sensor_m_flow(redeclare package Medium
+      = Medium)
     annotation (Placement(transformation(extent={{-80,50},{-60,70}})));
   TRANSFORM.Fluid.Sensors.SpecificEnthalpy sensor_h(redeclare package Medium =
         Medium)
@@ -137,9 +137,10 @@ equation
           {-28,-64},{-28,-56},{-38,-56}}, color={0,0,127}));
   annotation (
     Icon(coordinateSystem(preserveAspectRatio=false, extent={{-100,-100},{
-            100,100}}), graphics={Text(
-          extent={{-94,94},{94,32}},
-          textColor={28,108,200},
+            100,100}}), graphics={
+          Text(
+          extent={{-100,-76},{100,-110}},
+          textColor={0,0,0},
           textString="%data.nE Effect MEE
 ")}),
     Diagram(coordinateSystem(preserveAspectRatio=false, extent={{-100,-100},
