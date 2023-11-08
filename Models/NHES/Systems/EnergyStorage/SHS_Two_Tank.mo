@@ -7194,8 +7194,8 @@ package SHS_Two_Tank
             extent={{-10,10},{10,-10}},
             rotation=270,
             origin={72,20})));
-      TRANSFORM.Fluid.Volumes.SimpleVolume     volume(redeclare package Medium =
-            Storage_Medium, redeclare model Geometry =
+      TRANSFORM.Fluid.Volumes.SimpleVolume     volume(redeclare package Medium
+          = Storage_Medium, redeclare model Geometry =
             TRANSFORM.Fluid.ClosureRelations.Geometry.Models.LumpedVolume.GenericVolume
             (V=data.ctvolume_volume))
         annotation (Placement(transformation(extent={{-10,-10},{10,10}},
@@ -7776,7 +7776,11 @@ package SHS_Two_Tank
               lineColor={175,175,175},
               fillColor={85,85,255},
               fillPattern=FillPattern.HorizontalCylinder,
-              lineThickness=1)}));
+              lineThickness=1),
+              Text(
+              extent={{-100,92},{100,70}},
+              textColor={0,0,0},
+              textString="%name")}));
     end Two_Tank_SHS_System_dpPumps;
   end Components;
 
