@@ -5,17 +5,28 @@ package HeatTransport
       extends Modelica.Icons.ExamplesPackage;
     model HTtest
       extends Modelica.Icons.Example;
+      Modelica.Units.SI.MassFlowRate m_diff;
+      Modelica.Units.SI.TemperatureDifference dT;
+      Modelica.Units.SI.PressureDifference dP;
       TwoWayTransport twoWayTransport(
+        redeclare replaceable data.pipe_data_1 Supply_pipe_data(
+          L=twoWayTransport.L_supply,
+          D=twoWayTransport.D_s,
+          ith=twoWayTransport.th_i_supply,
+          nV=35),
         redeclare package Medium = Modelica.Media.Water.StandardWater,
         nominal_m_flow_supply=5,
         nominal_P_sink_supply=250000,
         nominal_h_sink_supply=2969.5e3,
+        L_supply=1000,
         nominal_m_flow_return=5,
         nominal_P_sink_return=200000,
         nominal_h_sink_return=958.4e3,
         S_use_T_start=true,
-        S_T_a_start=523.15,
-        S_T_b_start=523.15,
+        S_T_a_start=524.15,
+        S_T_b_start=522.15,
+        S_m_flow_a_start=5,
+        S_m_flow_b_start=-5,
         R_use_T_start=true,
         R_T_a_start=373.15,
         R_T_b_start=373.15,
@@ -24,6 +35,8 @@ package HeatTransport
         annotation (Placement(transformation(extent={{-40,-40},{40,40}})));
       TRANSFORM.Fluid.BoundaryConditions.MassFlowSource_T boundary(
         redeclare package Medium = Modelica.Media.Water.StandardWater,
+        use_m_flow_in=false,
+        use_T_in=true,
         m_flow=5,
         T=523.15,
         nPorts=1)
@@ -38,13 +51,31 @@ package HeatTransport
         redeclare package Medium = Modelica.Media.Water.StandardWater,
         p=200000,
         nPorts=1)
-        annotation (Placement(transformation(extent={{-100,-34},{-80,-14}})));
+        annotation (Placement(transformation(extent={{-102,-34},{-82,-14}})));
       TRANSFORM.Fluid.BoundaryConditions.Boundary_ph boundary3(
         redeclare package Medium = Modelica.Media.Water.StandardWater,
         p=250000,
         nPorts=1)
         annotation (Placement(transformation(extent={{100,14},{80,34}})));
+      Modelica.Blocks.Sources.Pulse pulse(
+        width=100,
+        period=10,
+        nperiod=1,
+        offset=5,
+        startTime=10005)
+        annotation (Placement(transformation(extent={{-160,22},{-140,42}})));
+      Modelica.Blocks.Sources.ContinuousClock continuousClock(offset=-5,
+          startTime=10000)
+        annotation (Placement(transformation(extent={{-160,64},{-140,84}})));
+      Modelica.Blocks.Sources.Step step(
+        height=20,
+        offset=250 + 273.15,
+        startTime=10005)
+        annotation (Placement(transformation(extent={{-160,-12},{-140,8}})));
     equation
+      m_diff=twoWayTransport.Supply.port_a.m_flow+twoWayTransport.Supply.port_b.m_flow;
+      dT=twoWayTransport.sensor_T_S_in.T-twoWayTransport.sensor_T_S_out.T;
+      dP=twoWayTransport.sensor_p_S_in.p-twoWayTransport.sensor_p_S_out.p;
       connect(boundary.ports[1], twoWayTransport.port_a_supply)
         annotation (Line(points={{-80,24},{-40,24}}, color={0,127,255}));
       connect(twoWayTransport.port_b_supply, boundary3.ports[1])
@@ -52,10 +83,15 @@ package HeatTransport
       connect(boundary1.ports[1], twoWayTransport.port_a_return)
         annotation (Line(points={{80,-24},{40,-24}}, color={0,127,255}));
       connect(twoWayTransport.port_b_return, boundary2.ports[1])
-        annotation (Line(points={{-40,-24},{-80,-24}}, color={0,127,255}));
+        annotation (Line(points={{-40,-24},{-82,-24}}, color={0,127,255}));
+      connect(pulse.y, boundary.m_flow_in)
+        annotation (Line(points={{-139,32},{-100,32}}, color={0,0,127}));
+      connect(step.y, boundary.T_in) annotation (Line(points={{-139,-2},{-112,-2},{-112,
+              28},{-102,28}}, color={0,0,127}));
       annotation (experiment(
-          StopTime=1000,
-          Interval=10,
+          StartTime=10000,
+          StopTime=10500,
+          Interval=0.25,
           __Dymola_Algorithm="Esdirk45a"));
     end HTtest;
 
@@ -71,21 +107,21 @@ package HeatTransport
         S_T_b_start=523.15,
         Supply(p_a_start=300000, p_b_start=300000))
         annotation (Placement(transformation(extent={{-40,-16},{40,64}})));
-      TRANSFORM.Fluid.BoundaryConditions.MassFlowSource_T boundary(
+      TRANSFORM.Fluid.BoundaryConditions.MassFlowSource_T Source(
         redeclare package Medium = Modelica.Media.IdealGases.SingleGases.He,
         m_flow=5,
         T=523.15,
         nPorts=1)
         annotation (Placement(transformation(extent={{-100,14},{-80,34}})));
-      TRANSFORM.Fluid.BoundaryConditions.Boundary_ph boundary3(
+      TRANSFORM.Fluid.BoundaryConditions.Boundary_ph Sink(
         redeclare package Medium = Modelica.Media.IdealGases.SingleGases.He,
         p=250000,
         nPorts=1)
         annotation (Placement(transformation(extent={{100,14},{80,34}})));
     equation
-      connect(boundary.ports[1], oneWayTransport.port_a_supply)
+      connect(Source.ports[1], oneWayTransport.port_a_supply)
         annotation (Line(points={{-80,24},{-40,24}}, color={0,127,255}));
-      connect(oneWayTransport.port_b_supply, boundary3.ports[1])
+      connect(oneWayTransport.port_b_supply, Sink.ports[1])
         annotation (Line(points={{40,24},{80,24}}, color={0,127,255}));
       annotation (experiment(
           StopTime=1000,
