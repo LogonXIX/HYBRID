@@ -19,7 +19,7 @@ model extractionTurbineModular_testMS
     p=12000000,
     h=3455.77e3,
     nPorts=1)
-    annotation (Placement(transformation(extent={{-102,30},{-82,50}})));
+    annotation (Placement(transformation(extent={{-100,4},{-80,24}})));
   TRANSFORM.Fluid.BoundaryConditions.Boundary_ph boundary1(
     redeclare package Medium = Modelica.Media.Water.StandardWater,
     p=10000,
@@ -92,8 +92,8 @@ model extractionTurbineModular_testMS
     nPorts=1)
     annotation (Placement(transformation(extent={{258,-110},{238,-90}})));
 equation
-  connect(boundary.ports[1], HP.port_a) annotation (Line(points={{-82,40},{-30,
-          40},{-30,14},{-20,14}}, color={0,127,255}));
+  connect(boundary.ports[1], HP.port_a)
+    annotation (Line(points={{-80,14},{-20,14}}, color={0,127,255}));
   connect(boundary3.port, generator.port)
     annotation (Line(points={{202,2},{182,2}},
                                              color={255,0,0}));
