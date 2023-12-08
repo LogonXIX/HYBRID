@@ -289,4 +289,41 @@ package Examples
         Interval=50,
         __Dymola_Algorithm="Esdirk45a"));
   end Reactor_Testspeedlimit;
+
+  model Reactor_Testspeedinsert
+     extends Modelica.Icons.Example;
+    TRANSFORM.Fluid.BoundaryConditions.Boundary_pT inlet(
+      redeclare package Medium =
+          Modelica.Media.IdealGases.SingleGases.He,
+      T=573.15,
+      nPorts=1)
+      annotation (Placement(transformation(extent={{100,0},{80,20}})));
+    TRANSFORM.Fluid.BoundaryConditions.Boundary_ph exit(
+      redeclare package Medium =
+          Modelica.Media.IdealGases.SingleGases.He,
+      p=3000000,
+      nPorts=1)
+      annotation (Placement(transformation(extent={{100,-40},{80,-20}})));
+    ReactorCRspeed
+            RX(redeclare replaceable
+        NHES.Systems.PrimaryHeatSystem.PHTGR.CS.CS_Texitspeed CS, controlRod(
+          Pos(start=0.75, fixed=true)),
+      core(rho_input=0.3 + RX.controlRod.y + step.y))
+      annotation (Placement(transformation(extent={{-40,-40},{40,40}})));
+    Modelica.Blocks.Sources.Step step(
+      height=200e-5,
+      offset=0,
+      startTime=1e6 + 60)
+      annotation (Placement(transformation(extent={{-84,36},{-64,56}})));
+  equation
+    connect(RX.port_b, exit.ports[1]) annotation (Line(points={{40,-24},{42,
+            -24},{42,-30},{80,-30}}, color={0,127,255}));
+    connect(RX.port_a, inlet.ports[1]) annotation (Line(points={{40,24},{74,
+            24},{74,10},{80,10}},  color={0,127,255}));
+    annotation (experiment(
+        StartTime=1000000,
+        StopTime=1015000,
+        Interval=5,
+        __Dymola_Algorithm="Esdirk45a"));
+  end Reactor_Testspeedinsert;
 end Examples;
