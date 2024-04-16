@@ -689,6 +689,10 @@ package Components
     Modelica.Blocks.Sources.RealExpression
                                  realExpression(y=Fr)
       annotation (Placement(transformation(extent={{-180,90},{-160,110}})));
+    Modelica.Blocks.Math.Gain gain(k=1)
+      annotation (Placement(transformation(extent={{56,-112},{42,-98}})));
+    Modelica.Blocks.Math.Gain gain1(k=1)
+      annotation (Placement(transformation(extent={{84,-126},{68,-110}})));
   equation
     connect(flowMultiplier1.port_b, port_b)
       annotation (Line(points={{90,0},{100,0}}, color={0,127,255}));
@@ -758,11 +762,6 @@ package Components
           points={{46,-20},{52,-20},{52,0},{70,0}}, color={0,127,255}));
     connect(flowMultiplierCoout.port_b, flowMultiplier1.port_a) annotation (Line(
           points={{46,-60},{52,-60},{52,0},{70,0}}, color={0,127,255}));
-    connect(MaxSiCT.y, fuelModel.Tin_max) annotation (Line(points={{141,-52},
-            {148,-52},{148,-118},{9,-118}},
-                                       color={0,0,127}));
-    connect(AverageSiCT.y, fuelModel.Tin_avg) annotation (Line(points={{141,-82},
-            {146,-82},{146,-106},{9,-106}},color={0,0,127}));
     connect(Total_Power.y, fuelModel.Power_in) annotation (Line(points={{-205,0},
             {-198,0},{-198,-112},{-11,-112}},color={0,0,127}));
     connect(realExpression.y, HotChannel.u1)
@@ -775,6 +774,15 @@ package Components
       annotation (Line(points={{-129,-46},{-14,-46}}, color={0,0,127}));
     connect(CornerPowerproduct.y, HotChannel.u2) annotation (Line(points={{
             -129,-46},{-126,-46},{-126,88},{-122,88}}, color={0,0,127}));
+    connect(gain.y, fuelModel.Tin_avg) annotation (Line(points={{41.3,-105},{
+            41.3,-106},{9,-106}}, color={0,0,127}));
+    connect(gain.u, AverageSiCT.y) annotation (Line(points={{57.4,-105},{57.4,
+            -106},{144,-106},{144,-98},{146,-98},{146,-82},{141,-82}}, color={0,
+            0,127}));
+    connect(MaxSiCT.y, gain1.u) annotation (Line(points={{141,-52},{148,-52},{
+            148,-118},{85.6,-118}}, color={0,0,127}));
+    connect(gain1.y, fuelModel.Tin_max)
+      annotation (Line(points={{67.2,-118},{9,-118}}, color={0,0,127}));
     annotation (Icon(coordinateSystem(preserveAspectRatio=false), graphics={
                                                                Ellipse(
             extent={{-92,30},{-108,-30}},

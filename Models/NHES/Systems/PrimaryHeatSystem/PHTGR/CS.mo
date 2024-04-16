@@ -187,28 +187,38 @@ package CS "Control systems package"
 
       NHES.Systems.EnergyStorage.SHS_Two_Tank.Data.Data_Default data
         annotation (Placement(transformation(extent={{-50,136},{-30,156}})));
-      TRANSFORM.Controls.LimPID PID(
+      Controls.LimOffsetPID CV_PID(
         controllerType=Modelica.Blocks.Types.SimpleController.PI,
-        k=0.01,
+        k=-1e-4,
+        Ti=10,
         yMax=1,
-        yMin=0)
+        yMin=0,
+        offset=0.1)
         annotation (Placement(transformation(extent={{-46,-38},{-26,-18}})));
-      Modelica.Blocks.Sources.RealExpression realExpression(y=33)
+      Modelica.Blocks.Sources.RealExpression realExpression(y=HotTankT)
         annotation (Placement(transformation(extent={{-94,-40},{-74,-20}})));
-      TRANSFORM.Controls.LimPID PID1(
+      Controls.LimOffsetPID DV_PID(
         controllerType=Modelica.Blocks.Types.SimpleController.PI,
-        k=0.01,
+        k=3e-5,
+        Ti=360,
         yMax=1,
-        yMin=0)
+        yMin=0,
+        offset=0.9,
+        delayTime=4000,
+        init_output=0.9)
         annotation (Placement(transformation(extent={{-44,22},{-24,42}})));
-      Modelica.Blocks.Sources.RealExpression realExpression1(y=33)
+      Modelica.Blocks.Sources.RealExpression P_in_set(y=MSP)
         annotation (Placement(transformation(extent={{-92,22},{-72,42}})));
+
+    parameter Modelica.Units.SI.Temperature HotTankT=565+273.15;
+    parameter Modelica.Units.SI.AbsolutePressure MSP=120e5;
+      Modelica.Blocks.Sources.RealExpression P_in_set2
+        annotation (Placement(transformation(extent={{-88,2},{-68,22}})));
     equation
 
-      connect(realExpression.y, PID.u_s)
-        annotation (Line(points={{-73,-30},{-60,-30},{-60,-28},{-48,-28}},
-                                                       color={0,0,127}));
-      connect(actuatorBus.Charge_Valve_Position, PID.y) annotation (Line(
+      connect(realExpression.y, CV_PID.u_s) annotation (Line(points={{-73,-30},{-60,
+              -30},{-60,-28},{-48,-28}}, color={0,0,127}));
+      connect(actuatorBus.Charge_Valve_Position, CV_PID.y) annotation (Line(
           points={{30,-100},{30,-28},{-25,-28}},
           color={111,216,99},
           pattern=LinePattern.Dash,
@@ -217,18 +227,9 @@ package CS "Control systems package"
           index=-1,
           extent={{6,3},{6,3}},
           horizontalAlignment=TextAlignment.Left));
-      connect(realExpression1.y, PID1.u_s)
+      connect(P_in_set.y, DV_PID.u_s)
         annotation (Line(points={{-71,32},{-46,32}}, color={0,0,127}));
-      connect(sensorBus.discharge_m_flow, PID1.u_m) annotation (Line(
-          points={{-30,-100},{-30,12},{-34,12},{-34,20}},
-          color={239,82,82},
-          pattern=LinePattern.Dash,
-          thickness=0.5), Text(
-          string="%first",
-          index=-1,
-          extent={{6,3},{6,3}},
-          horizontalAlignment=TextAlignment.Left));
-      connect(actuatorBus.Discharge_Valve_Position, PID1.y) annotation (Line(
+      connect(actuatorBus.Discharge_Valve_Position, DV_PID.y) annotation (Line(
           points={{30,-100},{30,32},{-23,32}},
           color={111,216,99},
           pattern=LinePattern.Dash,
@@ -237,7 +238,7 @@ package CS "Control systems package"
           index=-1,
           extent={{6,3},{6,3}},
           horizontalAlignment=TextAlignment.Left));
-      connect(sensorBus.charge_m_flow, PID.u_m) annotation (Line(
+      connect(sensorBus.Hot_Tank_Temp, CV_PID.u_m) annotation (Line(
           points={{-30,-100},{-30,-48},{-36,-48},{-36,-40}},
           color={239,82,82},
           pattern=LinePattern.Dash,
@@ -246,6 +247,8 @@ package CS "Control systems package"
           index=-1,
           extent={{6,3},{6,3}},
           horizontalAlignment=TextAlignment.Left));
+      connect(P_in_set2.y, DV_PID.u_m) annotation (Line(points={{-67,12},{-34,
+              12},{-34,20}}, color={0,0,127}));
     annotation(defaultComponentName="changeMe_CS", Icon(graphics={
             Text(
               extent={{-94,82},{94,74}},

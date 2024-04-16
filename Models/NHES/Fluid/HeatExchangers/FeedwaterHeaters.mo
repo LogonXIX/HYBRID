@@ -38,8 +38,8 @@ package FeedwaterHeaters
           Medium)
       annotation (Placement(transformation(extent={{-110,30},{-90,50}}),
           iconTransformation(extent={{-110,30},{-90,50}})));
-    TRANSFORM.Fluid.Interfaces.FluidPort_Flow port_a_h(redeclare package Medium
-        = Medium)
+    TRANSFORM.Fluid.Interfaces.FluidPort_Flow port_a_h(redeclare package Medium =
+          Medium)
       annotation (Placement(transformation(extent={{-10,90},{10,110}})));
 
    // final parameter TRANSFORM.Units.HydraulicResistance R_tube(fixed=false)= 1
@@ -93,7 +93,7 @@ package FeedwaterHeaters
     if T_hs_in-T_fw_out == T_hs_out-T_fw_in then
       LMDT= T_hs_in-T_fw_out;
       else
-    LMDT= ((T_hs_in-T_fw_out)-(T_hs_out-T_fw_in))/log(((T_hs_in-T_fw_out)/(T_hs_out-T_fw_in)));
+    LMDT= ((T_hs_in-T_fw_out)-(T_hs_out-T_fw_in))/log(abs((T_hs_in-T_fw_out)/(T_hs_out-T_fw_in)));
     end if;
     Q=UA*LMDT;
 
@@ -116,8 +116,8 @@ package FeedwaterHeaters
     h_fw_out=port_b_fw.h_outflow;
     h_hs_out=port_b_h.h_outflow;
 
-    h_fw_out=h_fw_in+Q/m_fw;
-    h_hs_out=h_hs_in-Q/m_hs;
+    h_fw_out=h_fw_in+Q/(max(m_fw,1e-8));
+    h_hs_out=h_hs_in-Q/(max(m_hs,1e-8));
 
     P_fw=port_a_fw.p;
     P_fw=port_b_fw.p-dp_tube;

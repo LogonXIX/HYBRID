@@ -7,7 +7,6 @@ model Pump_Pressure "Pressure Booster Pump"
     "Nominal outlet pressure (port_b.p)"
     annotation (Dialog(enable=not use_input));
    parameter Real eta=1 "Thermodynamic Efficiency of the pump";
-
   Modelica.Units.SI.Pressure p "Outlet pressure (port_b.p)";
   Modelica.Blocks.Interfaces.RealInput inputSignal(value=p_internal)
                                              if use_input annotation (Placement(
@@ -35,6 +34,7 @@ equation
   //port_b.Xi_outflow = inStream(port_a.Xi_outflow);
   //port_a.C_outflow = inStream(port_b.C_outflow);
   //port_b.C_outflow = inStream(port_a.C_outflow);
+
 
   annotation (defaultComponentName="pump",
     Icon(graphics={

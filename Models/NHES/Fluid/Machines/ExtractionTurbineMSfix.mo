@@ -1,5 +1,5 @@
 within NHES.Fluid.Machines;
-model ExtractionTurbine
+model ExtractionTurbineMSfix
 
   replaceable package medium=Modelica.Media.Water.StandardWater;
   parameter Modelica.Units.SI.AbsolutePressure P_in=100e5 "Nominal Turbine Inlet Pressure" annotation (Dialog(group="Nominal Turbine Conditions"));
@@ -234,15 +234,15 @@ model ExtractionTurbine
         (V=1),
     eta_sep=fms2) if Ms2 and nExt>1
     annotation (Placement(transformation(extent={{-2,24},{18,44}})));
-  TRANSFORM.Fluid.Volumes.MoistureSeparator MS3(
+  Vessels.MoistureSeparatorDewBub           MS3(
     redeclare package Medium = medium,
     p_start=P_ext3,
     use_T_start=false,
-    h_start=h_in,
+    h_start=h_AR3,
     redeclare model Geometry =
         TRANSFORM.Fluid.ClosureRelations.Geometry.Models.LumpedVolume.GenericVolume
         (V=1),
-    eta_sep=fms3) if Ms3 and nExt>2
+    eta_sep=0.99) if Ms3 and nExt>2
     annotation (Placement(transformation(extent={{54,22},{74,42}})));
 initial equation
   //Inlet
@@ -342,7 +342,7 @@ initial equation
         //check qual
         X3=(h_ext3-medium.bubbleEnthalpy(medium.setSat_p(P_ext3)))/(medium.dewEnthalpy(medium.setSat_p(P_ext3))-medium.bubbleEnthalpy(medium.setSat_p(P_ext3)));
         assert(X3>0,"Subcooled Extraction",AssertionLevel.error);
-        assert(X3<1,"Superheated Moisture Separation",AssertionLevel.warning);
+        assert(X3>1,"Superheated Moisture Separation",AssertionLevel.warning);
       if X3>1 then  //SH
         h_AR3=h_ext3;
         s_AR3=s_ext3;
@@ -503,7 +503,7 @@ equation
     annotation (Line(points={{2,34},{-8,34},{-8,6},{-18,6}},
                                                color={0,127,255}));
   if Con2 then
-    connect(MS2.port_b,pressureCV2. port_a)
+    connect(MS2.port_b,pressureCV2.port_a)
     annotation (Line(points={{14,34},{8,34},{8,6},{2,6}},
                                             color={0,127,255}));
   end if;
@@ -511,7 +511,7 @@ equation
    connect(tee2.port_3,port_b_extraction2)
     annotation (Line(points={{-8,0},{-8,-100},{0,-100}}, color={0,127,255}));
   if Con2 then
-  connect(tee2.port_2,pressureCV2. port_a)
+  connect(tee2.port_2,pressureCV2.port_a)
     annotation (Line(points={{-2,6},{2,6}}, color={0,127,255}));
    else
     connect(tee2.port_2,ST3.portHP);
@@ -529,14 +529,14 @@ equation
               {60,-86},{60,-86},{60,-100}},
                                         color={0,127,255}));
   if Con3 then
-  connect(MS3.port_b,pressureCV3. port_a)
+  connect(MS3.port_b,pressureCV3.port_a)
     annotation (Line(points={{70,32},{64,32},{64,6},{58,6}},
                                              color={0,127,255}));
   else
     connect(MS3.port_b, ST4.portHP);
   end if;
   else
-  connect(ST3.portLP,tee3. port_1)
+  connect(ST3.portLP,tee3.port_1)
     annotation (Line(points={{38,6},{42,6}}, color={0,127,255}));
   connect(tee3.port_3,port_b_extraction3)  annotation (Line(points={{48,4.44089e-16},
           {48,-86},{60,-86},{60,-100}}, color={0,127,255}));
@@ -651,4 +651,4 @@ equation
           origin={60,-92},
           rotation=180,
           visible=DynamicSelect(true, if nExt>2 then true else false))}));
-end ExtractionTurbine;
+end ExtractionTurbineMSfix;

@@ -173,9 +173,9 @@ package Examples
 
   model RX_TES_Test
      extends Modelica.Icons.Example;
-      NHES.Systems.EnergyStorage.SHS_Two_Tank.Components.Two_Tank_SHS_System_BestModel
+    NHES.Systems.EnergyStorage.SHS_Two_Tank.Components.Two_Tank_SHS_System_BestModel
       two_Tank_SHS_System_BestModel(
-      redeclare CS.TES_CS.CS_TES CS,
+      redeclare MicroGrids.HydrogenStuff.CS_TES CS,
       redeclare replaceable
         NHES.Systems.EnergyStorage.SHS_Two_Tank.Data.Data_SHS data(
         hot_tank_init_temp=838.15,

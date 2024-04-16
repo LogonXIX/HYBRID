@@ -1,5 +1,5 @@
 within NHES.Systems.BalanceOfPlant.Turbine.ControlSystems;
-model CS_L4
+model CS_L3E
 
   extends NHES.Systems.BalanceOfPlant.Turbine.BaseClasses.Partial_ControlSystem;
 
@@ -16,16 +16,17 @@ model CS_L4
     annotation (Placement(transformation(extent={{-10,-58},{10,-38}})));
   Controls.LimOffsetPID Tsteam_PI_FCV(
     controllerType=Modelica.Blocks.Types.SimpleController.PI,
-    k=1e-4,
+    k=-1e-3,
     Ti=100,
     yMax=1,
     yMin=0,
-    offset=0.8,
-    init_output=0.8)
+    offset=0.5,
+    delayTime=40,
+    init_output=0.5)
     annotation (Placement(transformation(extent={{-10,-18},{10,2}})));
   Controls.LimOffsetPID W_PI_TCV(
     controllerType=Modelica.Blocks.Types.SimpleController.PI,
-    k=-1e-8,
+    k=-1e-7,
     Ti=100,
     yMax=1,
     yMin=0,
@@ -81,4 +82,4 @@ annotation(defaultComponentName="changeMe_CS", Icon(graphics),
       StopTime=1000,
       Interval=5,
       __Dymola_Algorithm="Esdirk45a"));
-end CS_L4;
+end CS_L3E;
