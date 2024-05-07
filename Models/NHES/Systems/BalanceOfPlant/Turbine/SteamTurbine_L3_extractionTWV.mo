@@ -122,8 +122,8 @@ model SteamTurbine_L3_extractionTWV
   TRANSFORM.Fluid.Sensors.Temperature T_feed_sensor(redeclare package Medium =
         Medium)
     annotation (Placement(transformation(extent={{-168,-60},{-188,-40}})));
-  TRANSFORM.Fluid.Sensors.Temperature T_steam_sensor(redeclare package Medium
-      = Medium)
+  TRANSFORM.Fluid.Sensors.Temperature T_steam_sensor(redeclare package Medium =
+        Medium)
     annotation (Placement(transformation(extent={{-166,60},{-186,80}})));
   TRANSFORM.Fluid.Sensors.Pressure P_steam_sensor(redeclare package Medium =
         Medium)
@@ -321,10 +321,10 @@ equation
       thickness=0.5));
   connect(actuatorBus.Feed_Pump_Speed, FWP3.inputSignal) annotation (Line(
       points={{30,100},{30,160},{-220,160},{-220,-28},{-158,-28},{-158,-52.7}},
-
       color={111,216,99},
       pattern=LinePattern.Dash,
       thickness=0.5));
+
   connect(sensorW.W, boundary.W_input) annotation (Line(points={{191,28},{191,
           16},{76,16},{76,24},{66,24}}, color={0,0,127}));
   connect(sensorW1.port_b, boundary.port) annotation (Line(points={{18,22},{20,

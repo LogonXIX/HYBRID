@@ -88,13 +88,13 @@ model SteamTurbine_L2_Ext
         origin={100,44})));
   TRANSFORM.Electrical.Interfaces.ElectricalPowerPort_Flow port_a_elec
     annotation (Placement(transformation(extent={{90,-10},{110,10}})));
-  Fluid.Machines.Pump_Pressure                  pump(redeclare package Medium
-      = Modelica.Media.Water.StandardWater,
+  Fluid.Machines.Pump_Pressure                  pump(redeclare package Medium =
+        Modelica.Media.Water.StandardWater,
     p_nominal=data.p_i2,
     eta=data.eta_p)
     annotation (Placement(transformation(extent={{68,-70},{48,-50}})));
-  Fluid.Machines.Pump_Pressure                  pump1(redeclare package Medium
-      = Modelica.Media.Water.StandardWater,
+  Fluid.Machines.Pump_Pressure                  pump1(redeclare package Medium =
+        Modelica.Media.Water.StandardWater,
     use_input=false,
     p_nominal=data.HPT_p_in - 1e5,
     eta=data.eta_p)
@@ -181,14 +181,6 @@ model SteamTurbine_L2_Ext
   TRANSFORM.Fluid.FittingsAndResistances.SpecifiedResistance resistance1(
       redeclare package Medium = Modelica.Media.Water.StandardWater, R=5e5)
     annotation (Placement(transformation(extent={{4,10},{24,30}})));
-  Fluid.Machines.ExtractionTurbine extractionTurbine(
-    P_in=data.HPT_p_in,
-    P_out=data.cond_p,
-    h_in=h_in,
-    m_in=data.mdot_total,
-    P_ext1=data.p_i1,
-    P_ext2=data.p_i2,
-    nExt=2) annotation (Placement(transformation(extent={{-174,54},{-154,74}})));
   parameter SI.SpecificEnthalpy h_in=2.8e6 "Nominal Turbine Inlet Enthalpy";
 equation
   connect(SteamHeader.port_a, port_a_steam)

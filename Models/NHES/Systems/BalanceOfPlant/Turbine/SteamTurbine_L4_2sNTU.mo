@@ -1,13 +1,13 @@
 within NHES.Systems.BalanceOfPlant.Turbine;
-model SteamTurbine_L3_extraction
+model SteamTurbine_L4_2sNTU
   "Three Stage Turbine with open feed water heating using high pressure steam"
   extends NHES.Systems.BalanceOfPlant.Turbine.BaseClasses.Partial_SubSystem(
     redeclare replaceable
-      NHES.Systems.BalanceOfPlant.Turbine.ControlSystems.CS_L3E
+      NHES.Systems.BalanceOfPlant.Turbine.ControlSystems.CS_L4_s2
       CS,
     redeclare replaceable
       NHES.Systems.BalanceOfPlant.Turbine.ControlSystems.ED_Dummy ED,
-    redeclare replaceable NHES.Systems.BalanceOfPlant.Turbine.Data.Data_L3E data);
+    redeclare replaceable NHES.Systems.BalanceOfPlant.Turbine.Data.Data_L4_s2 data);
 
       replaceable package Medium = Modelica.Media.Water.StandardWater
     annotation (choicesAllMatching=true);
@@ -18,21 +18,25 @@ model SteamTurbine_L3_extraction
   TRANSFORM.Fluid.Interfaces.FluidPort_State port_b_FeedWater(redeclare package
       Medium = Medium)
     annotation (Placement(transformation(extent={{-210,-70},{-190,-50}})));
+  TRANSFORM.Fluid.Interfaces.FluidPort_Flow port_a_ExtReturn(redeclare package
+      Medium = Medium)
+    annotation (Placement(transformation(extent={{170,-50},{190,-30}})));
   TRANSFORM.Fluid.Interfaces.FluidPort_State port_b_Ext(redeclare package
       Medium = Medium)
     annotation (Placement(transformation(extent={{-130,130},{-110,150}})));
-  Fluid.Machines.ExtractionTurbine HPT(
+  Fluid.Machines.ExtractionTurbine Trubine(
+    redeclare package medium = Medium,
     P_in=data.P_in,
     P_out=data.P_cond,
     h_in=data.h_in,
     m_in=data.m1,
     eta_t=data.eta_t,
-    P_ext1=data.P_ta,
-    P_ext2=data.P_te,
-    P_ext3=data.P_tb,
-    m_ext1=data.m1a,
-    m_ext2=data.m1e,
-    m_ext3=data.m1b,
+    P_ext1=data.P_ext1,
+    P_ext2=data.P_ext2,
+    P_ext3=data.P_ext3,
+    m_ext1=data.m1a + data.m1d,
+    m_ext2=data.m1b,
+    m_ext3=data.m1c,
     Ms1=false,
     Con1=true,
     Ms2=false,
@@ -43,48 +47,48 @@ model SteamTurbine_L3_extraction
     fms2=data.eta_sep,
     fms3=data.eta_sep,
     nExt=3,
-    MS3(medium(p(start=2e5, fixed=true))))
-    annotation (Placement(transformation(extent={{-60,28},{-20,68}})));
+    pressureCV1(ValvePos_start=0.8, init_time=7),
+    pressureCV2(ValvePos_start=0.9, init_time=5),
+    pressureCV3(ValvePos_start=0.95, init_time=3))
+            annotation (Placement(transformation(extent={{-60,28},{-20,68}})));
   TRANSFORM.Electrical.PowerConverters.Generator generator
     annotation (Placement(transformation(extent={{154,38},{174,58}})));
   TRANSFORM.Electrical.Interfaces.ElectricalPowerPort_State port_b
     annotation (Placement(transformation(extent={{170,-10},{190,10}})));
   Fluid.Machines.Pump_Pressure FWP1(redeclare package Medium = Medium,
     p_a_start=data.P_cond,
-    p_b_start=data.P_tb*0.9,
+    p_b_start=data.P_Dea,
     T_a_start=(45 - 0.1) + 273.15,
     T_b_start=(45 + 0.1) + 273.15,
     m_flow_start=data.m3,
-    p_nominal=data.P_tb*0.9,
+    p_nominal=data.P_Dea,
     eta=data.eta_p)
-    annotation (Placement(transformation(extent={{92,-70},{72,-50}})));
+    annotation (Placement(transformation(extent={{128,-70},{108,-50}})));
 
-  TRANSFORM.Fluid.Volumes.IdealCondenser condenser(p=data.P_cond, V_total=100)
-    annotation (Placement(transformation(extent={{112,-52},{92,-32}})));
-  TRANSFORM.Fluid.Volumes.SimpleVolume OFWH1(
-    redeclare package Medium = Medium,
-    p_start=data.P_tb*0.9,
-    T_start=293.15,
+  TRANSFORM.Fluid.Volumes.IdealCondenser condenser(p=data.P_cond, V_total=50)
+    annotation (Placement(transformation(extent={{142,-52},{122,-32}})));
+  TRANSFORM.Fluid.Volumes.SimpleVolume Deaerator(redeclare package Medium =
+        Medium,
+    p_start=data.P_Dea,
+    T_start=383.15,
     redeclare model Geometry =
         TRANSFORM.Fluid.ClosureRelations.Geometry.Models.LumpedVolume.GenericVolume
         (V=1))
-    annotation (Placement(transformation(extent={{-14,-70},{6,-50}})));
+    annotation (Placement(transformation(extent={{-30,-70},{-10,-50}})));
+  TRANSFORM.Fluid.FittingsAndResistances.TeeJunctionVolume tee(redeclare
+      package Medium = Medium,
+    V=0.033,
+    p_start=data.P_Dea,
+    T_start=(45 + 0.1) + 273.15)
+    annotation (Placement(transformation(extent={{102,-50},{82,-70}})));
   TRANSFORM.Fluid.Valves.ValveLinear FHV(redeclare package Medium = Medium,
-    m_flow_start=data.m1e,
-    dp_nominal=data.P_tb*0.1*0.5,
+    m_flow_start=data.m1a,
+    dp_nominal=500000,
     m_flow_nominal=data.m1a)
     annotation (Placement(transformation(
         extent={{-10,10},{10,-10}},
-        rotation=270,
-        origin={-64,-28})));
-  TRANSFORM.Fluid.Volumes.SimpleVolume SteamHeader(redeclare package Medium =
-        Medium,
-    p_start=data.P_in,
-    T_start=data.T_in + 1,
-    redeclare model Geometry =
-        TRANSFORM.Fluid.ClosureRelations.Geometry.Models.LumpedVolume.GenericVolume
-        (V=1))
-    annotation (Placement(transformation(extent={{-160,50},{-140,70}})));
+        rotation=0,
+        origin={-60,-82})));
   TRANSFORM.Fluid.Valves.ValveLinear TCV(redeclare package Medium = Medium,
     m_flow_start=data.m1,
     dp_nominal=50000,
@@ -93,25 +97,16 @@ model SteamTurbine_L3_extraction
         extent={{-10,-10},{10,10}},
         rotation=0,
         origin={-94,60})));
-  Fluid.Machines.Pump_MassFlow FWP3(
-    redeclare package Medium = Medium,
-    m_flow_start=data.m1,
-    use_input=true,
-    m_flow_nominal=data.m1,
-    eta=data.eta_p) annotation (Placement(transformation(
-        extent={{-10,10},{10,-10}},
-        rotation=180,
-        origin={-158,-60})));
   Fluid.Machines.Pump_Pressure FWP2(
     redeclare package Medium = Medium,
-    p_a_start=data.P_tb*0.9,
-    p_b_start=data.P_ta*0.9,
-    T_a_start=294.15,
-    T_b_start=293.15,
-    m_flow_start=data.m4,
-    p_nominal=data.P_ta*0.9,
+    p_a_start=data.P_Dea,
+    p_b_start=data.P_feed,
+    T_a_start=373.15,
+    T_b_start=373.15,
+    m_flow_start=data.m1,
+    p_nominal=data.P_feed - 1e5,
     eta=data.eta_p)
-    annotation (Placement(transformation(extent={{-24,-70},{-44,-50}})));
+    annotation (Placement(transformation(extent={{-46,-70},{-66,-50}})));
 
   TRANSFORM.Fluid.Sensors.Temperature T_feed_sensor(redeclare package Medium =
         Medium)
@@ -127,56 +122,103 @@ model SteamTurbine_L3_extraction
         extent={{-10,-10},{10,10}},
         rotation=270,
         origin={180,28})));
-  Modelica.Blocks.Sources.RealExpression W_net(y=sensorW.W - FWP1.W - FWP2.W -
-        FWP3.W -FWP3.W)  "turbine work - pump work"
+  Modelica.Blocks.Sources.RealExpression W_net(y=sensorW.W - FWP1.W - FWP2.W)
+    "turbine work - pump work"
     annotation (Placement(transformation(extent={{-96,108},{-84,120}})));
-  TRANSFORM.Fluid.Volumes.SimpleVolume OFWH2(
+  TRANSFORM.Fluid.Valves.ValveLinear DHV(
     redeclare package Medium = Medium,
-    p_start=data.P_ta*0.9,
-    T_start=data.T_feed - 20,
-    redeclare model Geometry =
-        TRANSFORM.Fluid.ClosureRelations.Geometry.Models.LumpedVolume.GenericVolume
-        (V=1))
-    annotation (Placement(transformation(extent={{-106,-70},{-86,-50}})));
+    m_flow_start=data.m1d,
+    dp_nominal=50000,
+    m_flow_nominal=data.m1d) annotation (Placement(transformation(
+        extent={{-10,10},{10,-10}},
+        rotation=270,
+        origin={12,-26})));
   TRANSFORM.Fluid.FittingsAndResistances.TeeJunctionVolume tee1(
     redeclare package Medium = Medium,
-    V=0.1,
-    p_start=data.P_ta*0.9,
-    T_start=373.15)
-    annotation (Placement(transformation(extent={{-54,-70},{-74,-50}})));
-  TRANSFORM.Fluid.FittingsAndResistances.SpecifiedResistance HP_FH_res(
-      redeclare package Medium = Medium, R=data.P_ta*0.1*0.5/data.m1a)
-    annotation (Placement(transformation(
-        extent={{10,-10},{-10,10}},
-        rotation=90,
-        origin={-52,2})));
-  TRANSFORM.Fluid.FittingsAndResistances.SpecifiedResistance LP_FH_res(
-      redeclare package Medium = Medium, R=data.P_tb*0.1/data.m1b) annotation (
-      Placement(transformation(
-        extent={{10,-10},{-10,10}},
-        rotation=90,
-        origin={-22,-6})));
-  TRANSFORM.Fluid.FittingsAndResistances.TeeJunctionVolume Cond_inlet_mixer(
+    V=0.033,
+    p_start=data.P_Dea - 100,
+    T_start=(45 + 0.1) + 273.15)
+    annotation (Placement(transformation(extent={{64,-70},{44,-50}})));
+  TRANSFORM.Fluid.FittingsAndResistances.TeeJunctionVolume tee2(
     redeclare package Medium = Medium,
-    V=10,
+    V=0.033,
+    p_start=data.P_Dea - 50,
+    T_start=(45 + 0.1) + 273.15)
+    annotation (Placement(transformation(extent={{22,-70},{2,-50}})));
+  TRANSFORM.Fluid.Sensors.Temperature sensor_T(redeclare package Medium =
+        Medium)
+    annotation (Placement(transformation(extent={{-26,-60},{-46,-40}})));
+  Modelica.Blocks.Sources.RealExpression Dea_T_set(y=
+        Medium.saturationTemperature_sat(Medium.setSat_p(data.P_Dea)))
+    "turbine work - pump work"
+    annotation (Placement(transformation(extent={{-96,98},{-84,110}})));
+  TRANSFORM.Fluid.FittingsAndResistances.TeeJunctionVolume tee3(
+    redeclare package Medium = Medium,
+    V=1,
     p_start=data.P_cond,
-    T_start=313.15) annotation (Placement(transformation(
-        extent={{-10,-10},{10,10}},
-        rotation=270,
-        origin={110,-8})));
-  TRANSFORM.Fluid.Interfaces.FluidPort_Flow port_a_ExtReturn(redeclare package
-      Medium = Medium)
-    annotation (Placement(transformation(extent={{170,-30},{190,-10}})));
+    use_T_start=false,
+    T_start=318.15,
+    h_start=2209e3)
+    annotation (Placement(transformation(extent={{10,10},{-10,-10}},
+        rotation=90,
+        origin={148,2})));
+  Fluid.Ultilities.NonLinear_Break nonLinear_Break(redeclare package Medium =
+        Medium)
+    annotation (Placement(transformation(extent={{-148,50},{-128,70}})));
+  Fluid.HeatExchangers.Generic_HXs.NTU_HX_SinglePhase nTU_HX_SinglePhase(
+    NTU=10,
+    K_tube=1,
+    K_shell=1,
+    redeclare package Tube_medium = Modelica.Media.Water.StandardWater,
+    redeclare package Shell_medium = Modelica.Media.Water.StandardWater,
+    V_Tube=0.2,
+    V_Shell=0.2,
+    p_start_tube=19700000,
+    T_start_tube_inlet=409.15,
+    T_start_tube_outlet=466.15,
+    h_start_tube_inlet=587e3,
+    h_start_tube_outlet=830e3,
+    p_start_shell=1650000,
+    use_T_start_shell=false,
+    T_start_shell_inlet=533.15,
+    T_start_shell_outlet=414.15,
+    h_start_shell_inlet=2942e3,
+    h_start_shell_outlet=596e3,
+    dp_init_tube=10000,
+    m_start_tube=76.68,
+    m_start_shell=7.95)
+    annotation (Placement(transformation(extent={{-122,-88},{-82,-48}})));
+  TRANSFORM.Fluid.FittingsAndResistances.TeeJunctionVolume tee4(
+    redeclare package Medium = Medium,
+    V=0.033,
+    p_start=data.P_Dea,
+    T_start=513.15)
+    annotation (Placement(transformation(extent={{10,10},{-10,-10}},
+        rotation=90,
+        origin={-52,0})));
+  Fluid.Machines.Pump_MassFlow FWP3(
+    redeclare package Medium = Medium,
+    p_a_start=data.P_feed - 1e5,
+    p_b_start=data.P_feed,
+    T_a_start=373.15,
+    T_b_start=373.15,
+    m_flow_start=data.m1,
+    use_input=true,
+    m_flow_nominal=76.677,
+    eta=data.eta_p)
+    annotation (Placement(transformation(extent={{-140,-70},{-160,-50}})));
+  TRANSFORM.Fluid.FittingsAndResistances.SpecifiedResistance resistance5(
+      redeclare package Medium = Medium, R=0.6*(data.P_ext1 - data.P_Dea)/data.m1a)
+    annotation (Placement(transformation(extent={{10,-10},{-10,10}},
+        rotation=180,
+        origin={18,-80})));
 equation
 
-
-  connect(condenser.port_b,FWP1. port_a) annotation (Line(points={{102,-50},{98,
-          -50},{98,-60},{92,-60}},   color={0,127,255}));
-  connect(port_a_MainSteam, SteamHeader.port_a)
-    annotation (Line(points={{-200,60},{-156,60}}, color={0,127,255}));
-  connect(SteamHeader.port_b, TCV.port_a)
-    annotation (Line(points={{-144,60},{-104,60}}, color={0,127,255}));
-  connect(TCV.port_b, HPT.port_a)
+  connect(condenser.port_b,FWP1. port_a) annotation (Line(points={{132,-50},{
+          128,-50},{128,-60}},       color={0,127,255}));
+  connect(FWP1.port_b, tee.port_1)
+    annotation (Line(points={{108,-60},{102,-60}},color={0,127,255}));
+  connect(TCV.port_b, Trubine.port_a)
     annotation (Line(points={{-84,60},{-60,60}}, color={0,127,255}));
   connect(actuatorBus.opening_TCV, TCV.opening) annotation (Line(
       points={{30.1,100.1},{30.1,130},{30,130},{30,160},{-220,160},{-220,88},{-94,
@@ -185,17 +227,16 @@ equation
       pattern=LinePattern.Dash,
       thickness=0.5));
   connect(actuatorBus.FHV, FHV.opening) annotation (Line(
-      points={{30,100},{30,160},{-220,160},{-220,-28},{-72,-28}},
+      points={{30,100},{30,160},{-220,160},{-220,-120},{-58,-120},{-58,-92},{
+          -60,-92},{-60,-90}},
       color={111,216,99},
       pattern=LinePattern.Dash,
       thickness=0.5));
-  connect(FWP2.port_a, OFWH1.port_a)
-    annotation (Line(points={{-24,-60},{-10,-60}},
+  connect(FWP2.port_a, Deaerator.port_a)
+    annotation (Line(points={{-46,-60},{-26,-60}},
                                                  color={0,127,255}));
   connect(port_b_FeedWater, T_feed_sensor.port)
     annotation (Line(points={{-200,-60},{-178,-60}}, color={0,127,255}));
-  connect(T_feed_sensor.port, FWP3.port_b)
-    annotation (Line(points={{-178,-60},{-168,-60}}, color={0,127,255}));
   connect(sensorBus.Feedwater_Temp, T_feed_sensor.T) annotation (Line(
       points={{-30,100},{-30,162},{-222,162},{-222,-52},{-184,-52},{-184,-50}},
       color={239,82,82},
@@ -230,35 +271,17 @@ equation
       color={239,82,82},
       pattern=LinePattern.Dash,
       thickness=0.5));
-  connect(HPT.shaft_b, generator.shaft)
+  connect(Trubine.shaft_b, generator.shaft)
     annotation (Line(points={{-20,48},{154,48}}, color={0,0,0}));
-  connect(tee1.port_2, OFWH2.port_b)
-    annotation (Line(points={{-74,-60},{-90,-60}}, color={0,127,255}));
-  connect(tee1.port_1, FWP2.port_b)
-    annotation (Line(points={{-54,-60},{-44,-60}},
-                                                color={0,127,255}));
-  connect(FHV.port_b, tee1.port_3) annotation (Line(points={{-64,-38},{-64,-50}},
+  connect(Trubine.port_b_extraction2, port_b_Ext) annotation (Line(points={{-40,
+          28},{-40,20},{-116,20},{-116,124},{-120,124},{-120,140}}, color={0,127,
+          255}));
+  connect(DHV.port_b, tee2.port_3) annotation (Line(points={{12,-36},{12,-50}},
                               color={0,127,255}));
-  connect(HPT.port_b_extraction2, port_b_Ext) annotation (Line(points={{-40,28},
-          {-40,20},{-120,20},{-120,140}}, color={0,127,255}));
-  connect(HPT.port_b_extraction1, HP_FH_res.port_a)
-    annotation (Line(points={{-52,28},{-52,9}}, color={0,127,255}));
-  connect(HP_FH_res.port_b, FHV.port_a) annotation (Line(points={{-52,-5},{-52,-6},
-          {-64,-6},{-64,-18}}, color={0,127,255}));
-  connect(Cond_inlet_mixer.port_3, port_a_ExtReturn) annotation (Line(points={{
-          120,-8},{164,-8},{164,-20},{180,-20}}, color={0,127,255}));
-  connect(Cond_inlet_mixer.port_1, HPT.port_b)
-    annotation (Line(points={{110,2},{110,60},{-20,60}}, color={0,127,255}));
-  connect(Cond_inlet_mixer.port_2, condenser.port_a) annotation (Line(points={{
-          110,-18},{110,-26.5},{109,-26.5},{109,-35}}, color={0,127,255}));
-  connect(LP_FH_res.port_a, HPT.port_b_extraction3) annotation (Line(points={{
-          -22,1},{-22,20},{-28,20},{-28,28}}, color={0,127,255}));
-  connect(OFWH1.port_b, FWP1.port_b)
-    annotation (Line(points={{2,-60},{72,-60}}, color={0,127,255}));
-  connect(FWP3.port_a, OFWH2.port_a)
-    annotation (Line(points={{-148,-60},{-102,-60}}, color={0,127,255}));
-  connect(actuatorBus.Feed_Pump_Speed, FWP3.inputSignal) annotation (Line(
-      points={{30,100},{-122,100},{-122,-42},{-158,-42},{-158,-52.7}},
+  connect(Trubine.port_b_extraction3, tee1.port_3) annotation (Line(points={{-28,28},
+          {-28,18},{54,18},{54,-50}},       color={0,127,255}));
+  connect(actuatorBus.DCV, DHV.opening) annotation (Line(
+      points={{30,100},{30,-42},{-4,-42},{-4,-26},{4,-26}},
       color={111,216,99},
       pattern=LinePattern.Dash,
       thickness=0.5), Text(
@@ -266,8 +289,72 @@ equation
       index=-1,
       extent={{6,3},{6,3}},
       horizontalAlignment=TextAlignment.Left));
-  connect(LP_FH_res.port_b, OFWH1.port_b) annotation (Line(points={{-22,-13},{
-          -22,-42},{12,-42},{12,-60},{2,-60}}, color={0,127,255}));
+
+  connect(sensor_T.port, Deaerator.port_a)
+    annotation (Line(points={{-36,-60},{-26,-60}}, color={0,127,255}));
+  connect(sensorBus.T_dea, sensor_T.T) annotation (Line(
+      points={{-30,100},{-30,162},{-222,162},{-222,-36},{-132,-36},{-132,-50},{-42,
+          -50}},
+      color={239,82,82},
+      pattern=LinePattern.Dash,
+      thickness=0.5), Text(
+      string="%first",
+      index=-1,
+      extent={{-3,-6},{-3,-6}},
+      horizontalAlignment=TextAlignment.Right));
+  connect(sensorBus.T_dea_set, Dea_T_set.y) annotation (Line(
+      points={{-30,100},{-30,104},{-83.4,104}},
+      color={239,82,82},
+      pattern=LinePattern.Dash,
+      thickness=0.5), Text(
+      string="%first",
+      index=-1,
+      extent={{6,3},{6,3}},
+      horizontalAlignment=TextAlignment.Left));
+  connect(tee3.port_2, condenser.port_a) annotation (Line(points={{148,-8},{148,
+          -35},{139,-35}}, color={0,127,255}));
+  connect(port_a_ExtReturn, tee3.port_3) annotation (Line(points={{180,-40},{
+          180,-16},{164,-16},{164,2},{158,2}}, color={0,127,255}));
+  connect(P_steam_sensor.port, nonLinear_Break.port_a)
+    annotation (Line(points={{-166,60},{-148,60}}, color={0,127,255}));
+  connect(nonLinear_Break.port_b, TCV.port_a)
+    annotation (Line(points={{-128,60},{-104,60}}, color={0,127,255}));
+  connect(FWP2.port_b, nTU_HX_SinglePhase.Tube_in)
+    annotation (Line(points={{-66,-60},{-82,-60}}, color={0,127,255}));
+  connect(FHV.port_a, nTU_HX_SinglePhase.Shell_out) annotation (Line(points={{
+          -70,-82},{-76,-82},{-76,-94},{-82,-94},{-82,-72}}, color={0,127,255}));
+  connect(Trubine.port_b_extraction1, tee4.port_1)
+    annotation (Line(points={{-52,28},{-52,10}}, color={0,127,255}));
+  connect(tee4.port_2, nTU_HX_SinglePhase.Shell_in) annotation (Line(points={{
+          -52,-10},{-52,-12},{-128,-12},{-128,-54},{-130,-54},{-130,-72},{-122,
+          -72}}, color={0,127,255}));
+  connect(FWP3.port_b, T_feed_sensor.port)
+    annotation (Line(points={{-160,-60},{-178,-60}}, color={0,127,255}));
+  connect(FWP3.port_a, nTU_HX_SinglePhase.Tube_out)
+    annotation (Line(points={{-140,-60},{-122,-60}}, color={0,127,255}));
+  connect(FHV.port_b, resistance5.port_a) annotation (Line(points={{-50,-82},{2,
+          -82},{2,-80},{11,-80}}, color={0,127,255}));
+  connect(resistance5.port_b, tee.port_3)
+    annotation (Line(points={{25,-80},{92,-80},{92,-70}}, color={0,127,255}));
+  connect(tee4.port_3, DHV.port_a) annotation (Line(points={{-42,-6.10623e-16},
+          {12,-6.10623e-16},{12,-16}}, color={0,127,255}));
+  connect(actuatorBus.FCV, FWP3.inputSignal) annotation (Line(
+      points={{30,100},{-62,100},{-62,-52.7},{-150,-52.7}},
+      color={111,216,99},
+      pattern=LinePattern.Dash,
+      thickness=0.5), Text(
+      string="%first",
+      index=-1,
+      extent={{6,3},{6,3}},
+      horizontalAlignment=TextAlignment.Left));
+  connect(tee.port_2, tee1.port_1)
+    annotation (Line(points={{82,-60},{64,-60}}, color={0,127,255}));
+  connect(tee1.port_2, tee2.port_1)
+    annotation (Line(points={{44,-60},{22,-60}}, color={0,127,255}));
+  connect(tee2.port_2, Deaerator.port_b)
+    annotation (Line(points={{2,-60},{-14,-60}}, color={0,127,255}));
+  connect(tee3.port_1, Trubine.port_b) annotation (Line(points={{148,12},{148,
+          52},{-10,52},{-10,60},{-20,60}}, color={0,127,255}));
   annotation (Icon(coordinateSystem(preserveAspectRatio=false, extent={{-200,-100},
             {180,140}}),                                        graphics={
         Rectangle(
@@ -420,9 +507,5 @@ equation
           pattern=LinePattern.None,
           fillPattern=FillPattern.HorizontalCylinder,
           fillColor={255,255,255})}),                            Diagram(
-        coordinateSystem(preserveAspectRatio=false, extent={{-200,-100},{180,140}})),
-    experiment(
-      StopTime=1000,
-      Interval=10,
-      __Dymola_Algorithm="Esdirk45a"));
-end SteamTurbine_L3_extraction;
+        coordinateSystem(preserveAspectRatio=false, extent={{-200,-100},{180,140}})));
+end SteamTurbine_L4_2sNTU;
