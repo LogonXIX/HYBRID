@@ -32,14 +32,14 @@ model SteamTurbine_L2_OFWH_CEwithHPbypass
     use_T_nominal=false,
     T_nominal=data.Tin,
     d_nominal=data.d_HPT_in)
-    annotation (Placement(transformation(extent={{-46,44},{-26,64}})));
+    annotation (Placement(transformation(extent={{-28,44},{-8,64}})));
   TRANSFORM.Fluid.Machines.SteamTurbine LPT(
     energyDynamics=TRANSFORM.Types.Dynamics.DynamicFreeInitial,
     eta_mech=data.eta_mech,
     redeclare model Eta_wetSteam =
         TRANSFORM.Fluid.Machines.BaseClasses.WetSteamEfficiency.eta_Constant (
           eta_nominal=data.eta_t),
-    p_a_start=data.LPT1_p_in,
+    p_a_start=data.LPT1_p_in - 10,
     p_b_start=data.LPT1_p_out,
     T_a_start=384.5,
     T_b_start=314.65,
@@ -192,8 +192,6 @@ equation
     annotation (Line(points={{-66,-60},{-100,-60}}, color={0,127,255}));
   connect(LPT.portLP, condenser.port_a)
     annotation (Line(points={{94,60},{94,-43},{93,-43}}, color={0,127,255}));
-  connect(HPT.portHP, TCV.port_b)
-    annotation (Line(points={{-46,60},{-52,60}}, color={0,127,255}));
   connect(TCV.port_a, SteamHeader.port_b)
     annotation (Line(points={{-72,60},{-80,60}}, color={0,127,255}));
   connect(actuatorBus.opening_TCV, TCV.opening) annotation (Line(
@@ -273,9 +271,10 @@ equation
       horizontalAlignment=TextAlignment.Right));
 
   connect(moistureSeperator.port_a[1], HPT.portLP) annotation (Line(points={{2,57.75},
-          {0,57.75},{0,60},{-26,60}},    color={0,127,255}));
-  connect(HPT.shaft_b, LPT.shaft_a) annotation (Line(points={{-26,54},{-26,46},
-          {68,46},{68,54},{74,54}},     color={0,0,0}));
+          {2,60},{-8,60}},               color={0,127,255}));
+  connect(HPT.shaft_b, LPT.shaft_a) annotation (Line(points={{-8,54},{-8,32},{
+          40,32},{40,38},{70,38},{70,54},{74,54}},
+                                        color={0,0,0}));
   connect(HPT_bypass_valve.port_a, TCV.port_a) annotation (Line(points={{-34,6},
           {-34,40},{-72,40},{-72,60}}, color={0,127,255}));
   connect(OFWH_1.port_b, pump1.port_a)
@@ -294,8 +293,6 @@ equation
   connect(moistureSeperator.port_b[1], ECV.port_a)
     annotation (Line(points={{14,58},{14,72},{36,72},{36,74},{40,74},{40,60}},
                                                color={0,127,255}));
-  connect(ECV.port_b, LPT.portHP)
-    annotation (Line(points={{60,60},{74,60}}, color={0,127,255}));
   connect(actuatorBus.ECV, ECV.opening) annotation (Line(
       points={{30,100},{30,76},{50,76},{50,68}},
       color={111,216,99},
@@ -315,7 +312,8 @@ equation
       extent={{-6,3},{-6,3}},
       horizontalAlignment=TextAlignment.Right));
   connect(actuatorBus.HPT_pArc, HPT.partialArc) annotation (Line(
-      points={{30,100},{30,10},{-41,10},{-41,50}},
+      points={{30,100},{0,100},{0,72},{-16,72},{-16,44},{-20,44},{-20,50},{-23,
+          50}},
       color={111,216,99},
       pattern=LinePattern.Dash,
       thickness=0.5), Text(
@@ -323,8 +321,8 @@ equation
       index=-1,
       extent={{6,3},{6,3}},
       horizontalAlignment=TextAlignment.Left));
-  connect(sensor_p2.port, HPT.portHP) annotation (Line(points={{-76,78},{-62,78},
-          {-62,60},{-46,60}},          color={0,127,255}));
+  connect(sensor_p2.port, HPT.portHP) annotation (Line(points={{-76,78},{-76,76},
+          {-30,76},{-30,60},{-28,60}}, color={0,127,255}));
   connect(sensorBus.Imp_pressure, sensor_p2.p) annotation (Line(
       points={{-30,100},{-56,100},{-56,88},{-82,88}},
       color={239,82,82},
@@ -370,6 +368,10 @@ equation
   connect(sensor_p1.port, moistureSeperator.port_a[2]) annotation (Line(points={{28,40},
           {28,34},{-4,34},{-4,48},{-6,48},{-6,58.25},{2,58.25}},
                                                               color={0,127,255}));
+  connect(ECV.port_b, LPT.portHP)
+    annotation (Line(points={{60,60},{74,60}}, color={0,127,255}));
+  connect(TCV.port_b, HPT.portHP)
+    annotation (Line(points={{-52,60},{-28,60}}, color={0,127,255}));
   annotation (Icon(coordinateSystem(preserveAspectRatio=false), graphics={
         Rectangle(
           extent={{-2.09756,2},{83.9024,-2}},

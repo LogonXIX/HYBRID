@@ -148,8 +148,8 @@ model SteamTurbine_L4_2s
     annotation (Placement(transformation(extent={{-40,-90},{-60,-70}})));
   TRANSFORM.Fluid.FittingsAndResistances.MultiPort multiPort(nPorts_b=4)
     annotation (Placement(transformation(extent={{-6,-90},{2,-70}})));
-  TRANSFORM.Fluid.Interfaces.FluidPort_Flow port_a_ext(redeclare package Medium
-      = Medium)
+  TRANSFORM.Fluid.Interfaces.FluidPort_Flow port_a_ext(redeclare package Medium =
+        Medium)
     annotation (Placement(transformation(extent={{170,70},{190,90}})));
   TRANSFORM.Fluid.Interfaces.FluidPort_State port_b_ext(redeclare package
       Medium = Medium)

@@ -133,8 +133,8 @@ model L4_s2_4test_2
   TRANSFORM.HeatAndMassTransfer.BoundaryConditions.Heat.Temperature boundary1(T
       =373.15)
     annotation (Placement(transformation(extent={{-42,128},{-22,148}})));
-  TRANSFORM.Fluid.Sensors.MassFlowRate sensor_m_flow(redeclare package Medium
-      = Modelica.Media.Water.StandardWater)
+  TRANSFORM.Fluid.Sensors.MassFlowRate sensor_m_flow(redeclare package Medium =
+        Modelica.Media.Water.StandardWater)
     annotation (Placement(transformation(extent={{30,92},{50,112}})));
   Fluid.Valves.ThreeWayValve threeWayValve(
     redeclare package Medium = Modelica.Media.Water.StandardWater,

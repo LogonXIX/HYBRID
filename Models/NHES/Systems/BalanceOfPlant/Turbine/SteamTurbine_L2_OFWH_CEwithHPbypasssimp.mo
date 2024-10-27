@@ -150,7 +150,7 @@ model SteamTurbine_L2_OFWH_CEwithHPbypasssimp
     m_flow_nominal=data.mdot_lpt1) annotation (Placement(transformation(
         extent={{10,10},{-10,-10}},
         rotation=180,
-        origin={50,60})));
+        origin={44,60})));
   TRANSFORM.Fluid.Sensors.Pressure sensor_p1(redeclare package Medium =
         Modelica.Media.Water.StandardWater)
     annotation (Placement(transformation(extent={{20,40},{0,60}})));
@@ -179,6 +179,14 @@ model SteamTurbine_L2_OFWH_CEwithHPbypasssimp
   Fluid.Ultilities.NonLinear_Break nonLinear_Break2(redeclare package Medium =
         Modelica.Media.Water.StandardWater)
     annotation (Placement(transformation(extent={{-216,62},{-196,82}})));
+  TRANSFORM.Fluid.Volumes.SimpleVolume SteamHeader(
+    redeclare package Medium = Modelica.Media.Water.StandardWater,
+    p_start=data.HPT_p_in + 50,
+    T_start=data.Tin,
+    redeclare model Geometry =
+        TRANSFORM.Fluid.ClosureRelations.Geometry.Models.LumpedVolume.GenericVolume
+        (V=2))
+    annotation (Placement(transformation(extent={{58,54},{70,66}})));
 equation
   connect(LPT.shaft_b, generator.shaft)
     annotation (Line(points={{94,54},{100,54}}, color={0,0,0}));
@@ -279,11 +287,9 @@ equation
   connect(OFWH_1.port_a, moistureSeperator.port_Liquid) annotation (Line(points={{30,-60},
           {42,-60},{42,24},{-12,24},{-12,56}},        color={0,127,255}));
   connect(moistureSeperator.port_b[1], ECV.port_a)
-    annotation (Line(points={{-2,60},{40,60}}, color={0,127,255}));
-  connect(ECV.port_b, LPT.portHP)
-    annotation (Line(points={{60,60},{74,60}}, color={0,127,255}));
+    annotation (Line(points={{-2,60},{34,60}}, color={0,127,255}));
   connect(actuatorBus.ECV, ECV.opening) annotation (Line(
-      points={{30,100},{30,76},{50,76},{50,68}},
+      points={{30,100},{30,76},{44,76},{44,68}},
       color={111,216,99},
       pattern=LinePattern.Dash,
       thickness=0.5), Text(
@@ -370,6 +376,10 @@ equation
   connect(nonLinear_Break2.port_b, HPT.portHP) annotation (Line(points={{-196,
           72},{-74,72},{-74,74},{-58,74},{-58,72},{-46,72},{-46,60}}, color={0,
           127,255}));
+  connect(ECV.port_b, SteamHeader.port_a)
+    annotation (Line(points={{54,60},{60.4,60}}, color={0,127,255}));
+  connect(SteamHeader.port_b, LPT.portHP)
+    annotation (Line(points={{67.6,60},{74,60}}, color={0,127,255}));
   annotation (Icon(coordinateSystem(preserveAspectRatio=false), graphics={
         Rectangle(
           extent={{-2.09756,2},{83.9024,-2}},

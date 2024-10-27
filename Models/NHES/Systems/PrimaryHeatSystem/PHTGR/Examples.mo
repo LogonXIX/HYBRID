@@ -340,25 +340,40 @@ package Examples
       p=3000000,
       nPorts=1)
       annotation (Placement(transformation(extent={{100,-40},{80,-20}})));
-    ReactorCRspeedStartUp
-            RX(redeclare replaceable
-        NHES.Systems.PrimaryHeatSystem.PHTGR.CS.CS_Texitspeed CS, controlRod(
-          Pos(start=0.75, fixed=true)),
-      core(rho_input=rho_start + RX.controlRod.y + step.y))
+    ReactorCRspeedStartUp RX(
+      redeclare replaceable NHES.Systems.PrimaryHeatSystem.PHTGR.CS.CS_Texitspeedswitch
+        CS(PID_exit_T(
+          k=-1e-2,
+          Ti=300,
+          yMax=12,
+          yMin=2,
+          offset=6,
+          delayTime=100,
+          trans_time=100), RCP_PID(
+          controllerType=Modelica.Blocks.Types.SimpleController.PI,
+          k=-1e-9,
+          yMax=0.0036,
+          yMin=-0.0036,
+          offset=0,
+          delayTime=2e4 - 100,
+          trans_time=5)),
+      controlRod(Pos(start=0.75, fixed=true)),
+      core(rho_input=0.368 + RX.controlRod.y, kinetics(delayTime=20000,
+            transTime=2000)))
       annotation (Placement(transformation(extent={{-40,-40},{40,40}})));
     Modelica.Blocks.Sources.Step step(
       height=200e-5,
       offset=0,
       startTime=1e6 + 60)
       annotation (Placement(transformation(extent={{-84,36},{-64,56}})));
-      parameter Real rho_start=0.3;
+      parameter Real rho_start=0.375;
   equation
     connect(RX.port_b, exit.ports[1]) annotation (Line(points={{40,-24},{42,
             -24},{42,-30},{80,-30}}, color={0,127,255}));
     connect(RX.port_a, inlet.ports[1]) annotation (Line(points={{40,24},{74,
             24},{74,10},{80,10}},  color={0,127,255}));
     annotation (experiment(
-        StopTime=20000,
+        StopTime=200000,
         Interval=5,
         __Dymola_Algorithm="Esdirk45a"));
   end Reactor_TestspeedinsertStartUp;

@@ -54,8 +54,8 @@ equation
           255}));
   connect(cFWH_with_DrainCoolerSSnoinit.port_a_h, T_heating_in.port)
     annotation (Line(points={{10,0},{16,0},{16,18}}, color={0,127,255}));
-  connect(T_feed_out.port, cFWH_with_DrainCoolerSSnoinit.port_b_fw) annotation
-    (Line(points={{-18,-8},{-12,-8},{-12,-6},{0,-6}}, color={0,127,255}));
+  connect(T_feed_out.port, cFWH_with_DrainCoolerSSnoinit.port_b_fw) annotation (
+     Line(points={{-18,-8},{-12,-8},{-12,-6},{0,-6}}, color={0,127,255}));
   connect(T_heating_out.port, cFWH_with_DrainCoolerSSnoinit.port_b_h)
     annotation (Line(points={{8,-68},{8,-70},{22,-70},{22,-16},{20,-16}}, color
         ={0,127,255}));

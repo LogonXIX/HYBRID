@@ -110,8 +110,8 @@ model ReactorCRspeedStartUp
   TRANSFORM.Fluid.Sensors.Temperature Core_inlet_T(redeclare package Medium =
         Modelica.Media.IdealGases.SingleGases.He)
     annotation (Placement(transformation(extent={{-90,40},{-110,60}})));
-  TRANSFORM.Fluid.Sensors.MassFlowRate sensor_m_flow(redeclare package Medium
-      = Modelica.Media.IdealGases.SingleGases.He)    annotation (Placement(
+  TRANSFORM.Fluid.Sensors.MassFlowRate sensor_m_flow(redeclare package Medium =
+        Modelica.Media.IdealGases.SingleGases.He)    annotation (Placement(
         transformation(
         extent={{-10,-10},{10,10}},
         rotation=90,
@@ -139,7 +139,7 @@ model ReactorCRspeedStartUp
         transformation(
         extent={{20,-20},{-20,20}},
         rotation=90,
-        origin={-70,6})));
+        origin={-68,6})));
   Components.ControlRod controlRod(Worth_total=-500e-3)
     annotation (Placement(transformation(extent={{58,90},{78,110}})));
 equation
@@ -203,9 +203,11 @@ equation
       extent={{6,3},{6,3}},
       horizontalAlignment=TextAlignment.Left));
   connect(Core_inlet.port_b, core.port_a)
-    annotation (Line(points={{-70,30},{-70,26}}, color={0,127,255}));
+    annotation (Line(points={{-70,30},{-70,26},{-68,26}},
+                                                 color={0,127,255}));
   connect(core.port_b, Core_oulet.port_a)
-    annotation (Line(points={{-70,-14},{-70,-30}}, color={0,127,255}));
+    annotation (Line(points={{-68,-14},{-68,-22},{-70,-22},{-70,-30}},
+                                                   color={0,127,255}));
   connect(actuatorBus.Pump_flow, pump.in_m_flow) annotation (Line(
       points={{30,100},{30,10},{62.7,10}},
       color={111,216,99},
