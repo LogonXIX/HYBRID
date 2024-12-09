@@ -35,6 +35,7 @@ package Examples
 
   model Core_Test
      extends Modelica.Icons.Example;
+     parameter Real x=0.8;
     TRANSFORM.Fluid.BoundaryConditions.MassFlowSource_T boundary(
       redeclare package Medium =
           Modelica.Media.IdealGases.SingleGases.He,
@@ -43,30 +44,70 @@ package Examples
       nPorts=1)
       annotation (Placement(transformation(extent={{-100,-10},{-80,10}})));
     TRANSFORM.Fluid.BoundaryConditions.Boundary_ph boundary1(redeclare package
-                Medium =
-                 Modelica.Media.IdealGases.SingleGases.He,
+        Medium = Modelica.Media.IdealGases.SingleGases.He,
       p=3000000,
       nPorts=1)
       annotation (Placement(transformation(extent={{100,-10},{80,10}})));
     Components.Core core(
       Fr=0.5,
-      Q_nominal=1.5e7,
-      rho_input=-0.0075,
+      Q_nominal=15000000,
+      rho_input=ramp.y + switch1.y,
       Fp=1.1,
       T_Fouter_start=1173.15,
       T_Finner_start=1273.15,
       T_Mod_start=1073.15,
       T_Cinlet_start=773.15,
-      T_Coutlet_start=1073.15)
+      T_Coutlet_start=1073.15,
+      kinetics(alphas_feedback=x*{core.alpha_fuel_ft.y,core.alpha_mod_ft.y}))
       annotation (Placement(transformation(extent={{-20,-20},{20,20}})));
+    parameter TRANSFORM.Units.NonDim rho_input=-0.0075 "External Reactivity";
+    Controls.LimOffsetPIDsmooth PID(
+      controllerType=Modelica.Blocks.Types.SimpleController.PI,
+      k=1e-5,
+      Ti=100,
+      yMax=0.12,
+      yMin=0.04,
+      offset=-0.02,
+      delayTime=2000,
+      trans_time=2000)
+      annotation (Placement(transformation(extent={{-80,40},{-60,60}})));
+    Modelica.Blocks.Sources.RealExpression realExpression(y=15e6)
+      annotation (Placement(transformation(extent={{-124,40},{-104,60}})));
+    Modelica.Blocks.Sources.RealExpression realExpression1(y=core.Total_Power.y)
+      annotation (Placement(transformation(extent={{-126,20},{-106,40}})));
+    Modelica.Blocks.Sources.BooleanStep booleanStep(startTime=1e6, startValue=true)
+      annotation (Placement(transformation(extent={{20,52},{40,72}})));
+    Modelica.Blocks.Logical.Switch switch1
+      annotation (Placement(transformation(extent={{-12,66},{8,86}})));
+    Modelica.Blocks.Discrete.Sampler sampler(samplePeriod=1e5)
+      annotation (Placement(transformation(extent={{-16,30},{4,50}})));
+    Modelica.Blocks.Sources.Ramp ramp(
+      height=100e-5,
+      duration=60,
+      offset=0,
+      startTime=1e6 + 60)
+      annotation (Placement(transformation(extent={{-120,-56},{-100,-36}})));
   equation
     connect(core.port_b, boundary1.ports[1])
       annotation (Line(points={{20,0},{80,0}}, color={0,127,255}));
     connect(boundary.ports[1], core.port_a)
       annotation (Line(points={{-80,0},{-20,0}}, color={0,127,255}));
+    connect(realExpression.y, PID.u_s)
+      annotation (Line(points={{-103,50},{-82,50}}, color={0,0,127}));
+    connect(realExpression1.y, PID.u_m)
+      annotation (Line(points={{-105,30},{-70,30},{-70,38}}, color={0,0,127}));
+    connect(PID.y, switch1.u1) annotation (Line(points={{-59,50},{-40,50},{-40,84},
+            {-14,84}}, color={0,0,127}));
+    connect(booleanStep.y, switch1.u2) annotation (Line(points={{41,62},{46,62},{46,
+            28},{-40,28},{-40,54},{-38,54},{-38,76},{-14,76}}, color={255,0,255}));
+    connect(PID.y, sampler.u) annotation (Line(points={{-59,50},{-36,50},{-36,40},
+            {-18,40},{-18,40}}, color={0,0,127}));
+    connect(sampler.y, switch1.u3) annotation (Line(points={{5,40},{10,40},{10,58},
+            {-14,58},{-14,68}}, color={0,0,127}));
     annotation (experiment(
-        StopTime=1000000,
-        Interval=100,
+        StartTime=1000000,
+        StopTime=1006000,
+        Interval=5,
         __Dymola_Algorithm="Esdirk45a"));
   end Core_Test;
 
@@ -306,12 +347,15 @@ package Examples
       annotation (Placement(transformation(extent={{100,-40},{80,-20}})));
     ReactorCRspeed
             RX(redeclare replaceable
-        NHES.Systems.PrimaryHeatSystem.PHTGR.CS.CS_Texitspeed CS, controlRod(
+        NHES.Systems.PrimaryHeatSystem.PHTGR.CS.CS_Texitspeed CS(RCP_PID(
+            controllerType=Modelica.Blocks.Types.SimpleController.PI)),
+                                                                  controlRod(
           Pos(start=0.75, fixed=true)),
-      core(rho_input=0.3 + RX.controlRod.y + step.y))
+      core(rho_input=0.37 + RX.controlRod.y + step.y))
       annotation (Placement(transformation(extent={{-40,-40},{40,40}})));
-    Modelica.Blocks.Sources.Step step(
+    Modelica.Blocks.Sources.Ramp step(
       height=200e-5,
+      duration=60,
       offset=0,
       startTime=1e6 + 60)
       annotation (Placement(transformation(extent={{-84,36},{-64,56}})));
@@ -321,7 +365,8 @@ package Examples
     connect(RX.port_a, inlet.ports[1]) annotation (Line(points={{40,24},{74,
             24},{74,10},{80,10}},  color={0,127,255}));
     annotation (experiment(
-        StopTime=20000,
+        StartTime=1000000,
+        StopTime=1006000,
         Interval=5,
         __Dymola_Algorithm="Esdirk45a"));
   end Reactor_Testspeedinsert;
@@ -358,8 +403,11 @@ package Examples
           delayTime=2e4 - 100,
           trans_time=5)),
       controlRod(Pos(start=0.75, fixed=true)),
-      core(rho_input=0.368 + RX.controlRod.y, kinetics(delayTime=20000,
-            transTime=2000)))
+      core(rho_input=0.368 + RX.controlRod.y + step.y, kinetics(
+          alphas_feedback={0.8*RX.core.alpha_fuel_ft.y,1.2*RX.core.alpha_mod_ft.y},
+
+          delayTime=20000,
+          transTime=2000)))
       annotation (Placement(transformation(extent={{-40,-40},{40,40}})));
     Modelica.Blocks.Sources.Step step(
       height=200e-5,
@@ -367,13 +415,16 @@ package Examples
       startTime=1e6 + 60)
       annotation (Placement(transformation(extent={{-84,36},{-64,56}})));
       parameter Real rho_start=0.375;
+    Modelica.Blocks.Sources.ContinuousClock continuousClock(offset=1e6)
+      annotation (Placement(transformation(extent={{-84,-20},{-64,2}})));
   equation
     connect(RX.port_b, exit.ports[1]) annotation (Line(points={{40,-24},{42,
             -24},{42,-30},{80,-30}}, color={0,127,255}));
     connect(RX.port_a, inlet.ports[1]) annotation (Line(points={{40,24},{74,
             24},{74,10},{80,10}},  color={0,127,255}));
     annotation (experiment(
-        StopTime=200000,
+        StartTime=1000000,
+        StopTime=1000600,
         Interval=5,
         __Dymola_Algorithm="Esdirk45a"));
   end Reactor_TestspeedinsertStartUp;
