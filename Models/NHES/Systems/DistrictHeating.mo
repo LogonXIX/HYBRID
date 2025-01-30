@@ -1,5 +1,5 @@
 within NHES.Systems;
-package DistrictHeating
+package DistrictHeating "District Heating Loop models"
   extends Modelica.Icons.Package;
   package Examples
     extends Modelica.Icons.ExamplesPackage;
